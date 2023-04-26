@@ -1,0 +1,27 @@
+{
+  "name": "quantumultx",
+  "version": "1.0.0",
+  "description": "自用脚本、配置",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/id77/QuantumultX.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/id77/QuantumultX/issues"
+  },
+  "homepage": "https://github.com/id77/QuantumultX#readme",
+  "dependencies": {
+    "@types/crypto-js": "^4.0.1",
+    "@types/md5": "^2.3.0",
+    "crypto-js": "^4.0.0",
+    "got": "^11.8.2",
+    "md5": "^2.3.0",
+    "tough-cookie": "^4.0.0"
+  }
+}

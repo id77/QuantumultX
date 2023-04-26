@@ -1,0 +1,336 @@
+{
+  "id": "id77.app.sub",
+  "name": "id77 脚本订阅",
+  "author": "@id77",
+  "icon": "https://avatars0.githubusercontent.com/u/9592236",
+  "repo": "https://github.com/id77/QuantumultX/tree/master",
+  "apps": [
+    {
+      "id": "jdWulLiu",
+      "name": "京东物流",
+      "keys": [
+        "id77_jdWuLiu_userNum",
+        "id77_jdWuLiu_pageMax",
+        "id77_jdWuLiu_needPhone",
+        "id77_jdWuLiu_phoneList"
+      ],
+      "descs_html": [
+        "<p>查询的账号数量，不要大于 cookie 数量；默认值是 cookie 数量。</p>",
+        "<p>查询条目只能设置「整十」的数字。</p>",
+        "<p>10条/页，要查多少页就填写相应条目。</p>"
+      ],
+      "settings": [
+        {
+          "id": "id77_jdWuLiu_userNum",
+          "name": "需要查询的账号数量",
+          "val": "",
+          "type": "number",
+          "placeholder": "10",
+          "desc": "默认值是最大 cookie 数量，不要大于 cookie 数量"
+        },
+        {
+          "id": "id77_jdWuLiu_whiteList",
+          "name": "pin 白名单",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "placeholder": "10",
+          "desc": "用&间隔，pin数量不能超过查询账号数量；用于多cookie，查询特定号。"
+        },
+        {
+          "id": "id77_jdWuLiu_pageMax",
+          "name": "查询条目",
+          "val": "",
+          "type": "number",
+          "placeholder": "10",
+          "desc": "整十数字。比如：10，20，30..."
+        },
+        {
+          "id": "id77_jdWuLiu_needPhone",
+          "name": "手机号码",
+          "val": "N",
+          "type": "radios",
+          "desc": "是否显示手机号",
+          "items": [
+            { "key": "Y", "label": "是" },
+            { "key": "N", "label": "否" }
+          ]
+        },
+        {
+          "id": "id77_jdWuLiu_phoneList",
+          "name": "用户手机号",
+          "val": "{\"pin1\": 10086}",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "desc": "不懂不建议修改,  JSON格式，如：{\"pin\":\"手机号\"}"
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",
+      "author": "@id77",
+      "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/jdWuLiu.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/jdWuLiu.png"
+      ]
+    },
+    {
+      "id": "JDLM",
+      "name": "京东联盟转链",
+      "settings": [
+        {
+          "id": "id77_JDLM_platform",
+          "name": "指定平台",
+          "val": "WeChat-MiniApp",
+          "type": "radios",
+          "desc": "选择使用哪个平台进行转链",
+          "items": [
+            { "key": "WeChat-MiniApp", "label": "京粉小程序" },
+            { "key": "DIY", "label": "自建" },
+            { "key": "JDLM-WEB/APP", "label": "京东联盟-WEB/APP" }
+          ]
+        },
+        {
+          "id": "id77_JDLM_siteId",
+          "name": "siteId",
+          "val": "",
+          "type": "number"
+        },
+        {
+          "id": "id77_JDLM_app_key",
+          "name": "app_key",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_JDLM_appSecret",
+          "name": "appSecret",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_JDLM_diy_api",
+          "name": "DIY Api",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_JDLM_copy",
+          "name": "复制内容(需DIY Api)",
+          "val": "link",
+          "type": "radios",
+          "desc": "点击QX通知复制文案",
+          "items": [
+            { "key": "link", "label": "转链链接" },
+            { "key": "diy", "label": "DIY Api 文案" }
+          ]
+        },
+        {
+          "id": "id77_JDLM_no_schema",
+          "name": "是否禁止点击通知跳转",
+          "val": "N",
+          "type": "text",
+          "placeholder": "Y/N",
+          "desc": "Y禁止，N不禁止"
+        },
+        {
+          "id": "id77_JDLM_NO_LOG",
+          "name": "是否禁止输出日志",
+          "val": "Y",
+          "type": "text",
+          "placeholder": "Y/N",
+          "desc": "Y禁止打印结果，N不禁止"
+        }
+      ],
+      "author": "@id77",
+      "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/Script/jdapp_to_union.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/JDLM.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/JDLM.png"
+      ]
+    },
+    {
+      "id": "yiLi",
+      "name": "伊利乳品",
+      "keys": ["id77_yiLi_cookies"],
+      "settings": [
+        {
+          "id": "id77_yiLi_cookies",
+          "name": "session",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "desc": "多账号，不支持单独管理，可以手动更改，不懂不建议修改"
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/yiLi.js",
+      "author": "@id77",
+      "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/yiLi.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/yiLi.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/yiLi.png"
+      ],
+      "descs_html": [
+        "1、支持多账号，添加好配置，注册小程序后点个人中心，<a target=\"_blank\" href=\"https://raw.githubusercontent.com/id77/QuantumultX/master/task/yiLi.cookie.js\">前往文件获取</a>",
+        "2、<img style=\"width: 120px\" src=\"https://raw.githubusercontent.com/id77/QuantumultX/master/img/yiLi_qr.png\" />",
+        "长按保存小程序码，用微信相机识别进入注册。",
+        "麻烦点一下助力，开发不易 ❤️",
+        "目前支持自动签到，每日阅读、分享任务",
+        "<br />",
+        "ps: 可以用几个微信弄多个账号，但需要手机号"
+      ]
+    },
+    {
+      "id": "id77_TG",
+      "name": "wskey 提取器",
+      "keys": ["id77_TGUserID", "wskeyList"],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/jd_car.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/jd_car.png"
+      ],
+      "settings": [
+        {
+          "id": "id77_TGUserID",
+          "name": "Telegram User ID",
+          "val": "",
+          "type": "number"
+        },
+        {
+          "id": "wskeyList",
+          "name": "wskey List",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "id77_api",
+      "name": "自用JDCookie管理",
+      "keys": ["CookiesJD", "id77_api", "id77_api_sync_cookie"],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/link.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/link.png"
+      ],
+      "settings": [
+        {
+          "id": "CookiesJD",
+          "name": "cookie List",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        },
+        {
+          "id": "id77_api",
+          "name": "api",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        },
+        {
+          "id": "id77_api_sync_cookie",
+          "name": "api",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/Script/syncJDCookie.js"
+    },
+    {
+      "id": "id77_jegotrip",
+      "name": "无忧行",
+      "descs_html": [
+        "支持开发者：<a href=\"http://www.jegotrip.com.cn/api/atv/callback/wechat?code=&state=eyJhIjo0NDgyLCJlIjoxMTAyLCJrIjoic2hhcmVJbnZpdGVCdG5fMzc5NjUxNyIsImwiOnRydWUsInVyaSI6IjExMDIiLCJvIjozNzk2NTE3fQ==\" target=\"_blank\">App邀请活动链接</a>"
+      ],
+      "keys": ["id77_jegotrip_name", "id77_jegotrip_token"],
+      "settings": [
+        {
+          "id": "id77_jegotrip_name",
+          "name": "备注",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_jegotrip_token",
+          "name": "Token",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jegotrip.js",
+      "author": "@id77",
+      "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jegotrip.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/wyx.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/wyx.png"
+      ]
+    },
+    {
+      "id": "id77_phone",
+      "name": "手机集",
+      "keys": ["id77_phone_arr"],
+      "settings": [
+        {
+          "id": "id77_phone_arr",
+          "name": "手机号码",
+          "val": "",
+          "type": "textarea",
+          "desc": "多个时，使用@间隔",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
+      "id": "id77_ex",
+      "name": "通用重放脚本",
+      "keys": ["id77_ex_run_num", "id77_ex_request"],
+      "settings": [
+        {
+          "id": "id77_ex_run_num",
+          "name": "自动循环次数",
+          "val": "",
+          "type": "number"
+        },
+        {
+          "id": "id77_ex_interval",
+          "name": "间隔时间",
+          "val": "",
+          "type": "number",
+          "desc": "单位：毫秒"
+        },
+        {
+          "id": "id77_ex_request",
+          "name": "请求信息",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ex.task.js",
+      "author": "@id77",
+      "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ex.task.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/ex.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/ex.png"
+      ]
+    }
+  ]
+}
