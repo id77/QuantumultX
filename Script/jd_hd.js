@@ -29,6 +29,8 @@ if ($request.url.includes('/seckill')) {
 }
 
 let toolSwitch = $.getData('id77_tools_switch');
+const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
+const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
 let urlSku;
 const skuCache = $.getData('id77_JDSkuId_Cache');
 const msgOpts = JSON.parse($.getData('id77_JDMsgOpts_Cache') || '{}');
@@ -874,6 +876,9 @@ try {
     }
   </script>
   <style>
+    [data-tippy-root] {
+      z-index: ${clicker_off_zIndex} !important;
+    }
     #id77_clicker {
       background: #fff;
       z-index: 8888;
@@ -1129,12 +1134,12 @@ try {
       <div class="id77_clicker_add">+</div>
       <div style="overflow: hidden">
         <p>频率（每秒点击次数）</p>
-        <input type="number" id="id77_clicker_frequency_text" value="60"/>
+        <input type="number" id="id77_clicker_frequency_text" value="${clicker_frequency}"/>
         <input
           type="range"
           id="id77_clicker_frequency"
           name="volume"
-          value="60"
+          value="${clicker_frequency}"
           min="1"
           max="60"
         />

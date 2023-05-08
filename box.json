@@ -6,6 +6,32 @@
   "repo": "https://github.com/id77/QuantumultX/tree/master",
   "apps": [
     {
+      "id": "id77_clicker",
+      "name": "电击器",
+      "keys": ["id77_clicker_frequency", "id77_clicker_off_zIndex"],
+      "settings": [
+        {
+          "id": "id77_clicker_frequency",
+          "name": "点击频率",
+          "val": "",
+          "type": "number",
+          "desc": "数值，1-60"
+        },
+        {
+          "id": "id77_clicker_frequency",
+          "name": "开关 z-index",
+          "val": "",
+          "type": "number",
+          "desc": "数值，建议10000以上"
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "jdWulLiu",
       "name": "京东物流",
       "keys": [
