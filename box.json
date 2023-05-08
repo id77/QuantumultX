@@ -18,7 +18,7 @@
           "desc": "数值，1-60"
         },
         {
-          "id": "id77_clicker_frequency",
+          "id": "id77_clicker_off_zIndex",
           "name": "开关 z-index",
           "val": "",
           "type": "number",
