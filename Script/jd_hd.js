@@ -951,6 +951,7 @@ try {
     .id77_clicker_main input,
     .id77_clicker_main select {
       margin-bottom: 15px;
+      font-size: 14px;
     }
 
     .id77_clicker_main {
@@ -959,8 +960,9 @@ try {
     }
 
     .id77_clicker_main input[type='number'],
+    .id77_clicker_main input[type='time'],
     .id77_clicker_main select {
-      border: 1px solid #e5e5e5;
+      border: 1px solid #e5e5e5 !important;
       border-radius: 5px;
       height: 36px;
       box-sizing: border-box;
