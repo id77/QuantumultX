@@ -99,7 +99,7 @@ if (
   html = html.replace(/"status":\d+,"togo/, '"status":999,"togo');
 }
 if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
-  html = html.replace(/,"status":"\d"/, ',"status":"0"');
+  html = html.replace(/,"status":"\d"/g, ',"status":"0"');
 }
 
 if (!html.includes('</head>')) {
