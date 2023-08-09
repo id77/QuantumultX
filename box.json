@@ -235,6 +235,27 @@
       ]
     },
     {
+      "id": "id77_OAndI",
+      "name": "O&I",
+      "keys": ["oIArr"],
+      "settings": [
+        {
+          "id": "oIArr",
+          "name": "openId&iPhone",
+          "val": "",
+          "type": "textarea",
+          "desc": "示例：openId1@13800138000#openId2@13800138001",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_api",
       "name": "自用JDCookie管理",
       "keys": ["CookiesJD", "id77_api", "id77_api_sync_cookie"],
