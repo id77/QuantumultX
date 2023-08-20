@@ -235,6 +235,25 @@
       ]
     },
     {
+      "id": "id77_movie",
+      "name": "影票",
+      "keys": ["id77_movie_maximumLoss"],
+      "settings": [
+        {
+          "id": "id77_movie_maximumLoss",
+          "name": "最大损失",
+          "val": "0",
+          "type": "number",
+          "desc": "最多保留两位小数；不用时，可以设置0"
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_mitm",
       "name": "抓包数据",
       "keys": ["id77_mitmData"],
