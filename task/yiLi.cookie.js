@@ -124,6 +124,7 @@ function XMLtoJson(xml) {
 
 // https://github.com/chavyleung/scripts/blob/master/Env.js
 // prettier-ignore
+
 // https://github.com/chavyleung/scripts/blob/master/Env.js
 // prettier-ignore
 function Env(name, opts) {
@@ -419,6 +420,7 @@ function Env(name, opts) {
       if (opts.headers) {
         delete opts.headers['Content-Type'];
         delete opts.headers['Content-Length'];
+        delete opts.headers['Host'];
       }
       if (this.isSurge() || this.isLoon()) {
         if (this.isSurge() && this.isNeedRewrite) {
@@ -479,10 +481,13 @@ function Env(name, opts) {
     post(opts, callback = () => {}) {
       const method = opts.method ? opts.method.toLocaleLowerCase() : 'post';
       // 如果指定了请求体, 但没指定`Content-Type`, 则自动生成
-      // if (opts.body && // opts.headers && !opts.headers['Content-Type']) {
-        // opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      //  }
-      if (opts.headers) delete opts.headers['Content-Length'];
+      if (opts.body && opts.headers && !opts.headers['Content-Type']) {
+        opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      }
+      if (opts.headers) {
+        delete opts.headers['Host'];
+        delete opts.headers['Content-Length'];
+      };
       if (this.isSurge() || this.isLoon()) {
         if (this.isSurge() && this.isNeedRewrite) {
           opts.headers = opts.headers || {};
