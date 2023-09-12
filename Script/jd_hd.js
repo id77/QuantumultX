@@ -222,8 +222,19 @@ try {
     );
   }
 
-  let mitmFixContent = `<script ignore>
-    
+  let mitmFixContent = `
+  <script ignore>
+    setTimeout(() => {
+      const _id77_vzan_footer = document.querySelector('footer.goods_action_area');
+      if (_id77_vzan_footer) {
+        const _id77_vzan_fix = getComputedStyle(_id77_vzan_footer).getPropertyValue("padding-bottom");
+
+        if (_id77_vzan_fix === "0px") {
+          _id77_vzan_footer.style.setProperty('--sab', "80px");
+        }
+      }
+    }, 300);
+
     if (
       ${vx77}
     ) {
@@ -283,6 +294,15 @@ try {
     `;
   }
   mitmContent += `
+    :root {
+      --sat: env(safe-area-inset-top);
+      --sar: env(safe-area-inset-right);
+      --sab: env(safe-area-inset-bottom);
+      --sal: env(safe-area-inset-left);
+    }
+    footer.goods_action_area {
+      padding-bottom: var(--sab);
+    }
     div#__vconsole{
         display: block;
     }
