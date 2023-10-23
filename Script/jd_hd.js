@@ -100,6 +100,16 @@ if (
 }
 if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
   html = html.replace(/,"status":"\d"/g, ',"status":"0"');
+
+  if (
+    html.includes('hour_coupon_empty_in_this_time') ||
+    html.includes('coupon_empty')
+  ) {
+    html = html.replace(
+      /hour_coupon_empty_in_this_time|coupon_empty/g,
+      'coupon_receive'
+    );
+  }
 }
 
 if (!html.includes('</head>')) {
@@ -300,6 +310,11 @@ try {
       --sab: env(safe-area-inset-bottom);
       --sal: env(safe-area-inset-left);
     }
+    /* 券隐藏变显示 */
+    .free_coupon .coupon_receive {
+      min-height: 100px;
+    }
+
     footer.goods_action_area {
       padding-bottom: var(--sab);
     }
@@ -690,6 +705,20 @@ try {
 
           window._${prefix}_id77_submit = null;
           window._${prefix}_id77_submit2 = null;
+
+          if (/jd\\.com\\/mall\\/active\\/(.+?)\\/index\\.html/.test(window.location.href)) {
+            const id = window.location.href.match(/jd\\.com\\/mall\\/active\\/(.+?)\\/index\\.html/)?.[1];
+
+            if (id) {
+              toolList.push({
+                name: "转",
+                global: true,
+                onClick: function (event) {
+                  window.location.href = "https://h5static.m.jd.com/mall/active/" + id + "/index.html";
+                }
+              })
+            }
+          }
           toolList.push({
             name: "抢",
             global: true,
