@@ -91,6 +91,22 @@ if (cookies) {
   });
 }
 
+if (!html.includes('</head>')) {
+  $.done({ headers: modifiedHeaders });
+}
+
+// 避免修改内容后 原gb2312乱码，另外需要删除html的mete
+if (/charset=("|')gb2312("|')/.test($response.body) && $response.bodyBytes) {
+  const decoder = new TextDecoder('gb_2312');
+  const bytes = new Uint8Array($response.bodyBytes);
+  const text = decoder.decode(bytes);
+
+  if (/div/.test(text)) html = text;
+
+  // console.log(`test: ${/div/.test(text)}`);
+  // console.log(html);
+}
+
 // 提前点亮
 if (
   $request.url.includes('.com/coupons/show.action') &&
@@ -110,10 +126,6 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
       'coupon_receive'
     );
   }
-}
-
-if (!html.includes('</head>')) {
-  $.done({ headers: modifiedHeaders });
 }
 
 try {
@@ -1274,9 +1286,7 @@ try {
   // if (/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i.test(html)) {
   //   html = html.replace(/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i, ``);
   // }
-  if (!/meta charset/.test(html)) {
-    html = html.replace(/(<head>)/i, `$1<meta charset="utf-8" />`);
-  }
+  html = html.replace(/(<head>)/i, `$1<meta charset="utf-8" />`);
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
@@ -1290,14 +1300,18 @@ try {
   }
 
   html = html.replace(/(<\/body>)(?![\s\S]*\1)/, `${mitmFixContent}$1`);
-  html = html.slice() + ``;
+  // html = html.slice() + ``;
 } catch (error) {
   // console.error(arguments.callee.name, error);
   console.log(error);
 }
 
+if (/charset=("|')gb2312("|')/.test(html)) {
+  html = html.replace(/charset=("|')gb2312("|')/, 'charset="utf-8"');
+}
 $.done({
   body: html,
+  // bodyBytes: encoder.encode(html),
   headers: modifiedHeaders,
 });
 
