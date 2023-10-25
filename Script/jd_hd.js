@@ -99,7 +99,10 @@ if (!html.includes('</head>')) {
   $.done({ headers: modifiedHeaders });
 }
 
-const charset = $response.body.match(/charset=("|')(gb2312)("|')/)?.[2] || '';
+const charset = (
+  $response.body.match(/charset=("|')(.+?)("|')/)?.[2] || ''
+).toLowerCase();
+
 const contentType =
   modifiedHeaders['Content-Type'] || modifiedHeaders['content-type'] || '';
 // 避免修改内容后 原gb2312乱码，另外需要删除html的mete
@@ -109,6 +112,7 @@ if (
   !/utf\-?8/.test(contentType) &&
   $response.bodyBytes
 ) {
+  console.log(`html编码：${charset}\nContent-Type：${contentType}`);
   const decoder = new TextDecoder(charset);
   const bytes = new Uint8Array($response.bodyBytes);
   const text = decoder.decode(bytes);
