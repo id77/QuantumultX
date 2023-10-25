@@ -68,8 +68,12 @@ let html = $response.body || '';
 let modifiedHeaders = { ...$response.headers };
 if (modifiedHeaders['Content-Security-Policy'])
   delete modifiedHeaders['Content-Security-Policy'];
+if (modifiedHeaders['content-security-policy'])
+  delete modifiedHeaders['content-security-policy'];
 if (modifiedHeaders['X-XSS-Protection'])
   delete modifiedHeaders['X-XSS-Protection'];
+if (modifiedHeaders['x-xss-protection'])
+  delete modifiedHeaders['x-xss-protection'];
 
 let key = 'Set-Cookie';
 let cookies = $response.headers[key];
@@ -95,9 +99,17 @@ if (!html.includes('</head>')) {
   $.done({ headers: modifiedHeaders });
 }
 
+const charset = $response.body.match(/charset=("|')(gb2312)("|')/)?.[2] || '';
+const contentType =
+  modifiedHeaders['Content-Type'] || modifiedHeaders['content-type'] || '';
 // 避免修改内容后 原gb2312乱码，另外需要删除html的mete
-if (/charset=("|')gb2312("|')/.test($response.body) && $response.bodyBytes) {
-  const decoder = new TextDecoder('gb_2312');
+if (
+  charset &&
+  !/utf\-?8/.test(charset) &&
+  !/utf\-?8/.test(contentType) &&
+  $response.bodyBytes
+) {
+  const decoder = new TextDecoder(charset);
   const bytes = new Uint8Array($response.bodyBytes);
   const text = decoder.decode(bytes);
 
@@ -1306,8 +1318,8 @@ try {
   console.log(error);
 }
 
-if (/charset=("|')gb2312("|')/.test(html)) {
-  html = html.replace(/charset=("|')gb2312("|')/, 'charset="utf-8"');
+if (/charset=("|').+?("|')/.test(html)) {
+  html = html.replace(/charset=("|').+?("|')/g, 'charset="utf-8"');
 }
 $.done({
   body: html,
