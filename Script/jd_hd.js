@@ -144,6 +144,8 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
   }
 }
 
+const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
+
 try {
   let cookies = [];
   $.getData('CookieJD') && cookies.push($.getData('CookieJD'));
@@ -743,6 +745,20 @@ try {
                 global: true,
                 onClick: function (event) {
                   window.location.href = "https://h5static.m.jd.com/mall/active/" + id + "/index.html";
+                }
+              })
+            }
+          }
+          
+          if (/coupon\\.m\\.jd\\.com\\/coupons\\/show\\.action/.test(window.location.href)) {
+            const id = ${couponId};
+
+            if (id) {
+              toolList.push({
+                name: "转",
+                global: true,
+                onClick: function (event) {
+                  window.location.href = "https://so.m.jd.com/list/couponSearch.action?couponbatch=" + id;
                 }
               })
             }
