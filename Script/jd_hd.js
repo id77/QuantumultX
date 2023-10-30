@@ -144,6 +144,9 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
   }
 }
 
+// 去除input只能相机
+html = html.replace(/capture=?/g, '');
+
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
 
 try {
@@ -603,6 +606,11 @@ try {
     
     document.addEventListener('dblclick', function (e) {
       _${prefix}_id77_changeMitmUI();
+
+      // 解锁input相册功能
+      [].map.call(document.querySelectorAll('input[capture]'), item => {
+        item.removeAttribute("capture");
+      })
     });
     
     function _${prefix}_id77_init () {
@@ -821,6 +829,7 @@ try {
           })
           cksDom.addEventListener('dblclick', function (e) {
             _${prefix}_id77_changeCookie(_${prefix}_id77_cookies[0]);
+
             e.stopPropagation();
           });
   
