@@ -109,7 +109,7 @@ const contentType =
 if (
   charset &&
   !/utf\-?8/.test(charset) &&
-  !/utf\-?8/.test(contentType) &&
+  !/utf\-?8/.test(contentType.toLowerCase()) &&
   $response.bodyBytes
 ) {
   console.log(`html编码：${charset}\nContent-Type：${contentType}`);
