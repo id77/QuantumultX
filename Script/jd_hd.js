@@ -468,6 +468,7 @@ try {
     const _${prefix}_id77_currentKey = _${prefix}_id77_cookies_tool.get('pt_key');
     const _${prefix}_id77_needHideSwitch = localStorage.getItem('vConsole_switch_hide') === 'Y';
     const _${prefix}_id77_btnsDom = \`${tools}\`;
+    let _${prefix}_editTextDom;
 
     const _${prefix}_id77_cookies = ${JSON.stringify(cookies)};
 
@@ -611,6 +612,9 @@ try {
       [].map.call(document.querySelectorAll('input[capture]'), item => {
         item.removeAttribute("capture");
       })
+
+      //双击选择需要编辑的容器
+      _${prefix}_editTextDom = e.target;
     });
     
     function _${prefix}_id77_init () {
@@ -818,6 +822,66 @@ try {
                 clearInterval(window._${prefix}_id77_submit2);
                 window._${prefix}_id77_submit2 = null;
               }
+            },
+          });
+
+          toolList.push({
+            name: "改",
+            global: true,
+            onClick: function (event) {
+              function getMouseEventCaretRange(evt) {
+                var range,
+                  x = evt.clientX,
+                  y = evt.clientY;
+
+                if (document.body.createTextRange) {
+                  range = document.body.createTextRange();
+                  range.moveToPoint(x, y);
+                } else if (typeof document.createRange != 'undefined') {
+                  if (typeof evt.rangeParent != 'undefined') {
+                    range = document.createRange();
+                    range.setStart(evt.rangeParent, evt.rangeOffset);
+                    range.collapse(true);
+                  } else if (document.caretPositionFromPoint) {
+                    var pos = document.caretPositionFromPoint(x, y);
+                    range = document.createRange();
+                    range.setStart(pos.offsetNode, pos.offset);
+                    range.collapse(true);
+                  } else if (document.caretRangeFromPoint) {
+                    range = document.caretRangeFromPoint(x, y);
+                  }
+                }
+
+                return range;
+              }
+
+              function selectRange(range) {
+                if (range) {
+                  if (typeof range.select != 'undefined') {
+                    range.select();
+                  } else if (typeof window.getSelection != 'undefined') {
+                    var sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
+                }
+              }
+
+              if (_${prefix}_editTextDom) {
+                _${prefix}_editTextDom.ondblclick = function (evt) {
+                  evt = evt || window.event;
+                  this.contentEditable = true;
+                  this.focus();
+                  var caretRange = getMouseEventCaretRange(evt);
+                  window.setTimeout(function () {
+                    selectRange(caretRange);
+                  }, 0);
+
+                  return false;
+                };
+
+              }
+
             },
           });
   
