@@ -254,6 +254,34 @@
       ]
     },
     {
+      "id": "id77_qr",
+      "name": "QR助手",
+      "keys": ["id77_qr_data", "id77_qr_domClass"],
+      "settings": [
+        {
+          "id": "id77_qr_domClass",
+          "name": "QR元素Class",
+          "val": "#qrcode",
+          "type": "text",
+          "desc": "css选着器"
+        },
+        {
+          "id": "id77_qr_data",
+          "name": "QR数据",
+          "val": "",
+          "type": "textarea",
+          "desc": "数组，[{url:xxx,text:xxx}]",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_mitm",
       "name": "抓包数据",
       "keys": ["id77_mitmData"],
