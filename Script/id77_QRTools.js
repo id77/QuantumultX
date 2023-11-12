@@ -44,17 +44,19 @@ try {
 
   let mitmContent = `<style>`;
   mitmContent += `
-    #_id77_QRText{
-      position: fixed;
-      bottom: 30px;
-      left: 30px;
+    #_id77_QRText {
       font-size: 17px;
+      text-align: center;
+      position: fixed;
+      left:0;
+      right:0;
+      margin: auto;
+      display: inline-block;
+      white-space: pre-line;
       background: #fff;
-      color: black;
-      display: none;
+      z-index: 99999999999;
     }
   </style>
-  <div id="_id77_QRText" contenteditable="true"></div>
   <script ignore>
     const _id77_qrData = ${qrData};
     let _id77_qrData_index = 0;
@@ -63,13 +65,21 @@ try {
       const dom = document.querySelector('${qrDomClass}');
       const qrcode = new QRCode(dom);
       qrcode.clear();
-      const imgDom = document.querySelector('${qrDomClass} img');
+      const imgDom = dom.querySelector('img');
       dom.removeChild(imgDom);
       qrcode.makeCode(data?.url);
       _id77_qrData_index++;
 
-      const textDom = document.querySelector('#_id77_QRText');
-      textDom.setAttribute('style', 'display: inline-block;');
+      
+      let textDom = document.querySelector('#_id77_QRText');
+      if (!textDom) {
+        textDom = document.createElement("div");
+        textDom.setAttribute('id', '_id77_QRText');
+        textDom.setAttribute('contenteditable', true);
+        document.body.appendChild(textDom);
+      }
+      const _top = dom.getBoundingClientRect().bottom + 20;
+      textDom.setAttribute('style', 'top: ' + _top + 'px;');
       textDom.textContent = data.text;
       _id77_vConsole.hideSwitch();
     });
