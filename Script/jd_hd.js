@@ -143,6 +143,12 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
     );
   }
 }
+// jd无货变有货
+if (
+  !/"StockState":33|"StockState":39|"StockState":40|"StockState":36/.test(html)
+) {
+  html = html.replace(/"StockState":\d+/g, '"StockState":33');
+}
 
 // 去除input只能相机
 html = html.replace(/capture=?/g, '');
@@ -615,6 +621,17 @@ try {
 
       //双击选择需要编辑的容器
       _${prefix}_editTextDom = e.target;
+
+      // 解除按钮禁用
+      [].map.call(document.querySelectorAll('button[disabled],[class*="disable" i]'), item => {
+        item.style.cssText = item.style.cssText.replace('display: none;', '');
+        item.className = item.className.replace('disable', '');
+        item.removeAttribute("disabled");
+      });
+
+      [].map.call(document.querySelectorAll('[disabled]'), item => {
+        item.removeAttribute("disabled");
+      })
     });
     
     function _${prefix}_id77_init () {
