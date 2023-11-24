@@ -1408,6 +1408,7 @@ try {
   // if (/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i.test(html)) {
   //   html = html.replace(/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i, ``);
   // }
+  html = html.replace(/<!--\[if IE\]>.+?<!\[endif\]-->/g, '');
   html = html.replace(/(<head>)/i, `$1<meta charset="utf-8" />`);
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
