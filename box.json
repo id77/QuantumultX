@@ -32,6 +32,25 @@
       ]
     },
     {
+      "id": "id77_HD",
+      "name": "HD",
+      "keys": ["id77_click_interval"],
+      "settings": [
+        {
+          "id": "id77_click_interval",
+          "name": "点击间隔",
+          "val": "",
+          "type": "number",
+          "desc": "毫秒"
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "jdWulLiu",
       "name": "京东物流",
       "keys": [

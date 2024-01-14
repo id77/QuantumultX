@@ -31,6 +31,7 @@ if ($request.url.includes('/seckill')) {
 let toolSwitch = $.getData('id77_tools_switch');
 const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
 const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
+const click_interval = $.getData('id77_click_interval') || 100;
 let urlSku;
 const skuCache = $.getData('id77_JDSkuId_Cache');
 const msgOpts = JSON.parse($.getData('id77_JDMsgOpts_Cache') || '{}');
@@ -811,7 +812,7 @@ try {
                   }
                   if (dom) dom.click();
                   //document.querySelector('.coupon-btns .btn').click();
-                }, 600);
+                }, ${click_interval});
                 _${prefix}_id77_vConsole.hide();
               } else {
                 clearInterval(window._${prefix}_id77_submit);
@@ -835,7 +836,7 @@ try {
                           dom2.style.backgroundColor = '';
                       }
                       dom2.click();
-                  }, 100);
+                  }, ${click_interval});
                   _${prefix}_id77_vConsole.hide();
                 }
               } else {
