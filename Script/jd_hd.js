@@ -806,6 +806,9 @@ try {
                     dom = document.querySelector('.free_coupon a.coupon');
                     // document.querySelector('.free_coupon').click();
                   }
+                  if (!dom) {
+                    dom = document.querySelector('.coupon-get');
+                  }
                   if (dom) dom.click();
                   //document.querySelector('.coupon-btns .btn').click();
                 }, 600);
