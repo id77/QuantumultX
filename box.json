@@ -34,8 +34,15 @@
     {
       "id": "id77_HD",
       "name": "HD",
-      "keys": ["id77_click_interval"],
+      "keys": ["id77_needReloadStatusCode", "id77_click_interval"],
       "settings": [
+        {
+          "id": "id77_needReloadStatusCode",
+          "name": "需要自动刷新的响应码",
+          "val": "",
+          "type": "text",
+          "desc": " 比如502和404，填502@404，使用@间隔"
+        },
         {
           "id": "id77_click_interval",
           "name": "点击间隔",
