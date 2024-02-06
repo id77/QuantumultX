@@ -48,6 +48,10 @@ if (urlMatchArr?.length) {
   urlSku = urlMatchArr[1];
   // setTimeout(() => {}, 300);
 }
+$.needReload = $.getData('id77_needReloadStatusCode')
+  ?.split('@')
+  ?.map((item) => Number(item))
+  ?.includes($response.statusCode);
 
 $.JDDomain.forEach((item) => {
   if ($.domain.includes(item)) {
@@ -153,6 +157,12 @@ if (
 
 // 去除input只能相机
 html = html.replace(/capture=?/g, '');
+
+html = html.replace(
+  /opendate=\d+;openhours=\d+;gifthours=\d+/g,
+  `opendate=${new Date().getDate()};openhours=0;gifthours=0`
+);
+html = html.replace(/btn_yqw disable/g, `btn_q`);
 
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
 
@@ -331,6 +341,10 @@ try {
           return bln; 
         }
       }
+    }
+
+    if(${$.needReload}) {
+      location.reload();
     }
   </script>`;
 
@@ -842,6 +856,89 @@ try {
               } else {
                 clearInterval(window._${prefix}_id77_submit2);
                 window._${prefix}_id77_submit2 = null;
+              }
+
+              if($) {
+                $('.btn_q').removeClass('disable');
+
+                $('.btn_q').on('click', function () {
+                  var dates = new Date();
+                  // 抢券后改变样式布局
+                  if (dates.getHours() > gifthours) {
+                    var rand = Math.floor(Math.random() * 100 + 1);
+                    var _this = $(this);
+                    var money = $(this).parent().data('mon');
+                    $('.btn_q').addClass('qiang disable');
+                    $('.btn_q').css({ color: '#fff', background: '#ddd' });
+                    $('.btn_q').html('努力抢券');
+                    if (rand % 2 != 0) {
+                      $.ajax({
+                        type: 'POST',
+                        url: 'ajax.php',
+                        data: { a: money },
+                        dataType: 'json',
+                        success: function (data) {
+                          if (data.flag == 1) {
+                            errorMsgShow($('.error-msg'), data.info);
+                            _this.hide();
+                            _this.parent().find('.xx').show();
+                            _this.parent().find('.xx').html('已领取');
+                            setTimeout(function () {
+                              $('.btn_q').removeClass('qiang disable');
+                              $('.btn_q').html('领取');
+                              $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                            }, 9000);
+                          } else if (data.flag == 2) {
+                            errorMsgShow($('.error-msg'), data.info);
+                            _this.hide();
+                            _this.parent().find('.xx').html('!已抢完!');
+                            _this.parent().find('.xx').show();
+                            setTimeout(function () {
+                              $('.btn_q').removeClass('qiang disable');
+                              $('.btn_q').html('领取');
+                              $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                            }, 9000);
+                          } else if (data.flag == 3) {
+                            errorMsgShow($('.error-msg'), data.info);
+                            _this.hide();
+                            _this.parent().find('.xx').html('已领取');
+                            _this.parent().find('.xx').show();
+                            setTimeout(function () {
+                              $('.btn_q').removeClass('qiang disable');
+                              $('.btn_q').html('领取');
+                              $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                            }, 9000);
+                          } else {
+                            errorMsgShow($('.error-msg'), data.info);
+                            setTimeout(function () {
+                              $('.btn_q').removeClass('qiang disable');
+                              $('.btn_q').html('领取');
+                              $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                            }, 9000);
+                          }
+                        },
+                        error: function () {
+                          errorMsgShow($('.error-msg'), '活动太火爆，请稍后..');
+                          setTimeout(function () {
+                            $('.btn_q').removeClass('qiang disable');
+                            $('.btn_q').html('领取');
+                            $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                          }, 9000);
+                        },
+                      });
+                    } else {
+                      errorMsgShow($('.error-msg'), '活动太火爆，请稍后.');
+                      setTimeout(function () {
+                        $('.btn_q').removeClass('qiang disable');
+                        $('.btn_q').html('领取');
+                        $('.btn_q').css({ color: '#f60401', background: '#ffe5e4' });
+                      }, 8000);
+                    }
+                  } else {
+                    errorMsgShow($('.error-msg'), '活动还未开始');
+                  }
+                });
+
               }
             },
           });
