@@ -117,6 +117,7 @@ if (
   !/utf\-?8/.test(contentType.toLowerCase()) &&
   $response.bodyBytes
 ) {
+  // console.log($.toStr($response.bodyBytes));
   console.log(`html编码：${charset}\nContent-Type：${contentType}`);
   const decoder = new TextDecoder(charset);
   const bytes = new Uint8Array($response.bodyBytes);
@@ -153,6 +154,17 @@ if (
   !/"StockState":33|"StockState":39|"StockState":40|"StockState":36/.test(html)
 ) {
   html = html.replace(/"StockState":\d+/g, '"StockState":33');
+}
+
+if ($request.url.includes('lovemojit')) {
+  if (/ grey-btn/g.test(html)) {
+    html = html.replace(
+      / (data-task="[^"]+")/g,
+      ' data-index="1" $1 data-method="get"'
+    );
+  }
+  html = html.replace(/ over-btn/g, '');
+  html = html.replace(/ grey-btn/g, ' get-btn');
 }
 
 // 去除input只能相机
@@ -1538,9 +1550,6 @@ $.done({
   // bodyBytes: encoder.encode(html),
   headers: modifiedHeaders,
 });
-
-// https://github.com/chavyleung/scripts/blob/master/Env.js
-// prettier-ignore
 
 // https://github.com/chavyleung/scripts/blob/master/Env.js
 // prettier-ignore
