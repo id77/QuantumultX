@@ -329,6 +329,27 @@
       ]
     },
     {
+      "id": "id77_resp",
+      "name": "数据体",
+      "keys": ["id77_resp"],
+      "settings": [
+        {
+          "id": "id77_resp",
+          "name": "数据体",
+          "val": "",
+          "type": "textarea",
+          "desc": "需要替换为什么内容就填什么",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_OAndI",
       "name": "O&I",
       "keys": ["oIArr"],
