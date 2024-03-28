@@ -28,6 +28,7 @@ if ($request.url.includes('/seckill')) {
   // $.seckill = true;
 }
 
+let notCache = $.getData('id77_notCache') == 1 || false;
 let toolSwitch = $.getData('id77_tools_switch');
 const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
 const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
@@ -98,6 +99,11 @@ if (cookies) {
     _key += ' ';
     modifiedHeaders[_key] = ck.replace(/@/g, ',');
   });
+}
+
+if (notCache) {
+  modifiedHeaders['Cache-Control'] = 'no-cache';
+  modifiedHeaders[' Cache-Control'] = 'private';
 }
 
 if (!html.includes('</head>')) {
@@ -1522,6 +1528,13 @@ try {
   //   html = html.replace(/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i, ``);
   // }
   html = html.replace(/<!--\[if IE\]>.+?<!\[endif\]-->/g, '');
+  // if (notCache)
+  //   html.replace(
+  //     /(<head>)/i,
+  //     `$1<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  //     <meta http-equiv="Pragma" content="no-cache" />
+  //     <meta http-equiv="Expires" content="0" />`
+  //   );
   html = html.replace(/(<head>)/i, `$1<meta charset="utf-8" />`);
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(

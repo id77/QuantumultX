@@ -34,7 +34,10 @@
     {
       "id": "id77_HD",
       "name": "HD",
-      "keys": ["id77_needReloadStatusCode", "id77_click_interval"],
+      "keys": [
+        "id77_needReloadStatusCode",
+        "id77_click_interval,id77_notCache"
+      ],
       "settings": [
         {
           "id": "id77_needReloadStatusCode",
@@ -49,6 +52,13 @@
           "val": "",
           "type": "number",
           "desc": "毫秒"
+        },
+        {
+          "id": "id77_notCache",
+          "name": "禁用缓存",
+          "val": "0",
+          "type": "number",
+          "desc": "1禁用，0不禁用"
         }
       ],
       "author": "@id77",
