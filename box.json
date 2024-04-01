@@ -382,6 +382,26 @@
     },
     {
       "id": "id77_api",
+      "name": "自用Cookie管理",
+      "keys": ["Oclean_mini"],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ],
+      "settings": [
+        {
+          "id": "Oclean_mini",
+          "name": "Oclean mini",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "id77_api",
       "name": "自用JDCookie管理",
       "keys": ["CookiesJD", "id77_api", "id77_api_sync_cookie"],
       "author": "@id77",
