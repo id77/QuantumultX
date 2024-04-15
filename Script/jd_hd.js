@@ -155,6 +155,10 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
     );
   }
 }
+
+html = html.replace(/11:30:00/g, `00:00:00`);
+html = html.replace(/10:00:00/g, `00:00:00`);
+
 // jd无货变有货
 if (
   !/"StockState":33|"StockState":39|"StockState":40|"StockState":36/.test(html)
