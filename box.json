@@ -84,7 +84,16 @@
         }
       ],
       "author": "@id77",
-      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_task.js",
+      "scripts": [
+        {
+          "name": "上传文件设置任务",
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_task.js"
+        },
+        {
+          "name": "删除任务",
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_delTask.js"
+        }
+      ],
       "icons": [
         "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
         "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"

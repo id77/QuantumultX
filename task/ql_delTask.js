@@ -7,7 +7,7 @@ UPDATE apps SET client_secret = 'xxxxxxx' WHERE id = 2;
 SELECT * FROM apps WHERE id = 2;
  * 
  */
-const $ = new Env('青龙上传脚本');
+const $ = new Env('青龙删除任务');
 
 let qlAddrs = ['192.168.1.1']; // 青龙面板地址
 let port = '5700'; // 青龙端口
@@ -73,32 +73,28 @@ class Qinglong {
     });
   }
 
-  upload(fileContent) {
+  getTaskList() {
     return new Promise((resolve, reject) => {
-      const url = `${this.qlAddr}:${port}/open/scripts`;
-      const body = JSON.stringify({
-        filename: fileName,
-        content: fileContent,
-        path: '/',
-      });
+      const url = `${this.qlAddr}:${port}/open/crons`;
 
-      $.post(
-        { url, method: 'PUT', headers: this.qlHeaders, body, timeout: 2000 },
+      $.get(
+        { url, headers: this.qlHeaders, timeout: 2000 },
         (err, resp, data) => {
           if (resp?.statusCode === 200) {
             const ret = JSON.parse(resp.body);
             if (ret.code === 200) {
-              console.log(`[*] 上传成功`);
+              $.taskList = ret?.data?.data ?? [];
+              console.log(`[*] 获取任务列表成功`);
             } else {
-              console.log(`[*] 上传失败`);
+              console.log(`[*] 获取任务列表失败`);
             }
           } else {
-            console.log(`[*] 上传失败,状态码:${resp?.statusCode}`);
+            console.log(`[*] 获取任务列表失败,状态码:${resp?.statusCode}`);
             console.log($.toStr(data));
           }
 
           if (err) {
-            console.log(`[*] 上传失败,错误:${$.toStr(err)}`);
+            console.log(`[*] 获取任务列表失败,错误:${$.toStr(err)}`);
           }
           resolve(data);
         }
@@ -106,32 +102,45 @@ class Qinglong {
     });
   }
 
-  setCron(name, command, schedule) {
+  delTask(name, command, schedule) {
     return new Promise((resolve, reject) => {
+      const ids = $.taskList
+        .filter(
+          (item) =>
+            item.name === name &&
+            item.command === command &&
+            item.schedule === schedule
+        )
+        .map((item) => item.id);
       const url = `${this.qlAddr}:${port}/open/crons`;
-      const body = JSON.stringify({
-        name: name,
-        command: command,
-        schedule: schedule,
-      });
+      const body = JSON.stringify(ids);
 
       $.post(
-        { url, headers: this.qlHeaders, body, timeout: 2000 },
+        {
+          url,
+          method: 'DELETE',
+          headers: {
+            ...this.qlHeaders,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body,
+          timeout: 2000,
+        },
         (err, resp, data) => {
           if (resp?.statusCode === 200) {
             const ret = JSON.parse(resp.body);
             if (ret.code === 200) {
-              console.log(`[*] cron 设置成功`);
+              console.log(`[*] ${name} 任务删除成功`);
             } else {
-              console.log(`[*] cron 设置失败`);
+              console.log(`[*] ${name} 任务删除失败`);
             }
           } else {
-            console.log(`[*] cron 设置失败,状态码:${resp?.statusCode}`);
-            console.log(`请检查是否已存在同时间同名字的任务！`);
+            console.log(`[*] ${name} 任务删除失败,状态码:${resp?.statusCode}`);
           }
 
           if (err) {
-            console.log(`[*] cron 设置失败,错误:${$.toStr(err)}}`);
+            console.log(`[*] ${name} 任务删除失败,错误:${$.toStr(err)}}`);
           }
           resolve(data);
         }
@@ -152,15 +161,8 @@ async function task() {
     const ql = new Qinglong(qlAddr, clientId, clientSecret);
     try {
       await ql.init();
-      const fileContent = await $.readFile();
-      if (!fileContent) {
-        console.log(
-          `[*] 读取文件失败，请检查是否存在 ${fileName} 该文件，再执行此脚本！`
-        );
-        return;
-      }
-      await ql.upload(fileContent);
-      await ql.setCron(taskName, `task ${fileName} now`, schedule);
+      await ql.getTaskList();
+      await ql.delTask(taskName, `task ${fileName} now`, schedule);
     } catch (error) {
       console.log(error);
     }
