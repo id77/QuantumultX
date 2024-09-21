@@ -19,13 +19,18 @@ let taskName = 'test'; // 定时任务名称
 
 const needBoxJS = $.getData('id77_ql_flag');
 if (needBoxJS) {
-  qlAddrs = $.getData('id77_ql_addrs').split('@'); // 青龙面板地址
+  qlAddrs = $.getData('id77_ql_addrs')?.split('@') ?? []; // 青龙面板地址
   port = $.getData('id77_ql_port'); // 青龙端口
   clientId = $.getData('id77_ql_clientId');
   clientSecret = $.getData('id77_ql_clientSecret');
   fileName = $.getData('id77_ql_fileName'); // 上传脚本名称
   schedule = $.getData('id77_ql_schedule'); // 定时时间
   taskName = $.getData('id77_ql_taskName'); // 定时任务名称
+
+  const _qlAddrs = $.getData('id77_ql_addrs_other')?.split('@') ?? [];
+  if (_qlAddrs.length) {
+    qlAddrs = [...qlAddrs, ..._qlAddrs].filter((item) => !!item);
+  }
 }
 
 class Qinglong {
@@ -42,8 +47,8 @@ class Qinglong {
     return new Promise((resolve, reject) => {
       const url = `${this.qlAddr}:${port}/open/auth/token?client_id=${this.clientId}&client_secret=${this.clientSecret}`;
 
-      $.get({ url }, (err, resp, data) => {
-        if (resp.statusCode === 200) {
+      $.get({ url, timeout: 2000 }, (err, resp, data) => {
+        if (resp?.statusCode === 200) {
           const ret = JSON.parse(resp.body);
           if (ret.code === 200) {
             this.token = ret.data.token;
@@ -56,12 +61,12 @@ class Qinglong {
             console.log('[*] 青龙登陆失败');
           }
         } else {
-          console.log('[*] 青龙登陆失败,状态码:', resp.statusCode);
+          console.log('[*] 青龙登陆失败,状态码:', resp?.statusCode);
           console.log($.toStr(data));
         }
 
         if (err) {
-          console.log('[*] 青龙登陆失败,错误:', err);
+          console.log(`[*] 青龙登陆失败,错误:${$.toStr(err)}`);
         }
         resolve(data);
       });
@@ -78,22 +83,22 @@ class Qinglong {
       });
 
       $.post(
-        { url, method: 'PUT', headers: this.qlHeaders, body },
+        { url, method: 'PUT', headers: this.qlHeaders, body, timeout: 2000 },
         (err, resp, data) => {
-          if (resp.statusCode === 200) {
+          if (resp?.statusCode === 200) {
             const ret = JSON.parse(resp.body);
             if (ret.code === 200) {
-              console.log(`[*] ${fileName}上传成功`);
+              console.log(`[*] 上传成功`);
             } else {
-              console.log(`[*] ${fileName}上传失败`);
+              console.log(`[*] 上传失败`);
             }
           } else {
-            console.log(`[*] ${fileName}上传失败,状态码:${resp.statusCode}`);
+            console.log(`[*] 上传失败,状态码:${resp?.statusCode}`);
             console.log($.toStr(data));
           }
 
           if (err) {
-            console.log(`[*] ${fileName}上传失败,错误:${err}`);
+            console.log(`[*] 上传失败,错误:${$.toStr(err)}`);
           }
           resolve(data);
         }
@@ -110,24 +115,27 @@ class Qinglong {
         schedule: schedule,
       });
 
-      $.post({ url, headers: this.qlHeaders, body }, (err, resp, data) => {
-        if (resp.statusCode === 200) {
-          const ret = JSON.parse(resp.body);
-          if (ret.code === 200) {
-            console.log(`[*] cron ${name} 设置成功`);
+      $.post(
+        { url, headers: this.qlHeaders, body, timeout: 2000 },
+        (err, resp, data) => {
+          if (resp?.statusCode === 200) {
+            const ret = JSON.parse(resp.body);
+            if (ret.code === 200) {
+              console.log(`[*] cron 设置成功`);
+            } else {
+              console.log(`[*] cron 设置失败`);
+            }
           } else {
-            console.log(`[*] cron ${name} 设置失败`);
+            console.log(`[*] cron 设置失败,状态码:${resp?.statusCode}`);
+            console.log(`请检查是否已存在同时间同名字的任务！`);
           }
-        } else {
-          console.log(`[*] cron ${name} 设置失败,状态码:${resp.statusCode}`);
-          console.log(`请检查是否已存在同时间同名字的任务！`);
-        }
 
-        if (err) {
-          console.log(`[*] cron ${name} 设置失败,错误:${err}`);
+          if (err) {
+            console.log(`[*] cron 设置失败,错误:${$.toStr(err)}}`);
+          }
+          resolve(data);
         }
-        resolve(data);
-      });
+      );
     });
   }
 }
@@ -140,19 +148,23 @@ class Qinglong {
 
 async function task() {
   for (const qlAddr of qlAddrs) {
-    console.log(`[*] 正在操作 ${qlAddr}====>`);
+    console.log(`[*] 正在操作 /${qlAddr}/ = = = = >`);
     const ql = new Qinglong(qlAddr, clientId, clientSecret);
-    await ql.init();
-    const fileContent = await $.readFile();
-    if (!fileContent) {
-      console.log(
-        `[*] 读取文件失败，请检查是否存在 ${fileName} 该文件，再执行此脚本！`
-      );
-      return;
+    try {
+      await ql.init();
+      const fileContent = await $.readFile();
+      if (!fileContent) {
+        console.log(
+          `[*] 读取文件失败，请检查是否存在 ${fileName} 该文件，再执行此脚本！`
+        );
+        return;
+      }
+      await ql.upload(fileContent);
+      await ql.setCron(taskName, `task ${fileName} now`, schedule);
+    } catch (error) {
+      console.log(error);
     }
-    await ql.upload(fileContent);
-    await ql.setCron(taskName, `task ${fileName} now`, schedule);
-    console.log(`[*] ${qlAddr} 操作完成<====\n`);
+    console.log(`[*] 操作结束 /${qlAddr}/ < = = = =\n`);
   }
 }
 
@@ -170,12 +182,25 @@ function Env(name, opts) {
       if (method === 'POST') {
         sender = this.post;
       }
-      return new Promise((resolve, reject) => {
+      const delayPromise = (promise, delay = 1000) => {
+        return Promise.race([
+          promise,
+          new Promise((resolve, reject) => {
+            setTimeout(() => {
+              reject(new Error('请求超时'));
+            }, delay);
+          }),
+        ]);
+      };
+
+      const call = new Promise((resolve, reject) => {
         sender.call(this, opts, (err, resp, body) => {
           if (err) reject(err);
           else resolve(resp);
         });
       });
+
+      return opts.timeout ? delayPromise(call, opts.timeout) : call;
     }
 
     get(opts) {
