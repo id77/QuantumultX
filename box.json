@@ -27,6 +27,26 @@
           "desc": "使用BoxJS数据"
         },
         {
+          "id": "id77_ql_fileName",
+          "name": "本地文件名",
+          "val": "",
+          "type": "text",
+          "placeholder": "QX取iCloud的Scripts文件夹文件，NodeJS取运行同级路径下的文件"
+        },
+        {
+          "id": "id77_ql_schedule",
+          "name": "任务定时",
+          "val": "",
+          "type": "text",
+          "placeholder": "cron 格式"
+        },
+        {
+          "id": "id77_ql_taskName",
+          "name": "任务名",
+          "val": "",
+          "type": "text"
+        },
+        {
           "id": "id77_ql_addrs",
           "name": "青龙域名或IP",
           "val": "",
@@ -50,26 +70,6 @@
         {
           "id": "id77_ql_clientSecret",
           "name": "青龙 Client Secret",
-          "val": "",
-          "type": "text"
-        },
-        {
-          "id": "id77_ql_fileName",
-          "name": "本地文件名",
-          "val": "",
-          "type": "text",
-          "placeholder": "QX取iCloud的Scripts文件夹文件，NodeJS取运行同级路径下的文件"
-        },
-        {
-          "id": "id77_ql_schedule",
-          "name": "任务定时",
-          "val": "",
-          "type": "text",
-          "placeholder": "cron 格式"
-        },
-        {
-          "id": "id77_ql_taskName",
-          "name": "任务名",
           "val": "",
           "type": "text"
         }
