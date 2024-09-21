@@ -48,7 +48,16 @@
         },
         {
           "id": "id77_ql_addrs",
-          "name": "青龙域名或IP",
+          "name": "青龙域名或IP(固定)",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "placeholder": "192.168.2.1@192.168.2.2"
+        },
+        {
+          "id": "id77_ql_addrs_other",
+          "name": "青龙域名或IP(预留)",
           "val": "",
           "type": "textarea",
           "autoGrow": true,
