@@ -36,7 +36,7 @@
           "placeholder": "192.168.2.1@192.168.2.2"
         },
         {
-          "id": "id77_ql_prot",
+          "id": "id77_ql_port",
           "name": "青龙端口",
           "val": "",
           "type": "number"
