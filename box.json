@@ -6,6 +6,82 @@
   "repo": "https://github.com/id77/QuantumultX/tree/master",
   "apps": [
     {
+      "id": "id77_ql",
+      "name": "青龙上传设置任务",
+      "keys": [
+        "id77_ql_flag",
+        "id77_ql_addrs",
+        "id77_ql_port",
+        "id77_ql_clientId",
+        "id77_ql_clientSecret",
+        "id77_ql_fileName",
+        "id77_ql_schedule",
+        "id77_ql_taskName"
+      ],
+      "settings": [
+        {
+          "id": "id77_ql_flag",
+          "name": "启用",
+          "val": false,
+          "type": "boolean",
+          "desc": "使用BoxJS数据"
+        },
+        {
+          "id": "id77_ql_addrs",
+          "name": "青龙域名或IP",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "placeholder": "192.168.2.1@192.168.2.2"
+        },
+        {
+          "id": "id77_ql_prot",
+          "name": "青龙端口",
+          "val": "",
+          "type": "number"
+        },
+        {
+          "id": "id77_ql_clientId",
+          "name": "青龙 Client Id",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_ql_clientSecret",
+          "name": "青龙 Client Secret",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_ql_fileName",
+          "name": "本地文件名",
+          "val": "",
+          "type": "text",
+          "placeholder": "QX取iCloud的Scripts文件夹文件，NodeJS取运行同级路径下的文件"
+        },
+        {
+          "id": "id77_ql_schedule",
+          "name": "任务定时",
+          "val": "",
+          "type": "text",
+          "placeholder": "cron 格式"
+        },
+        {
+          "id": "id77_ql_taskName",
+          "name": "任务名",
+          "val": "",
+          "type": "text"
+        }
+      ],
+      "author": "@id77",
+      "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_task.js",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_clicker",
       "name": "电击器",
       "keys": ["id77_clicker_frequency", "id77_clicker_off_zIndex"],
