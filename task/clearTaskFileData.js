@@ -1,4 +1,4 @@
-const $ = new Env('整合脚本');
+const $ = new Env('移除整合脚本数据');
 
 let fileName = 'test.js'; // 上传脚本名称
 
@@ -15,12 +15,14 @@ if (needBoxJS === 'true') {
 
 async function task() {
   const fileContent = await $.readFile();
-  const reqArrStr = $.getData('id77_mitmData');
 
-  if (reqArrStr && !fileContent.includes(reqArrStr)) {
+  if (
+    fileContent.includes(`//注入数据start`) &&
+    fileContent.includes(`//注入数据end`)
+  ) {
     const _fileContent = fileContent.replace(
-      /(读取当前手机抓包所有数据.*?\n)/,
-      `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
+      /\/\/注入数据start[\s\S\n]*\/\/注入数据end\n/,
+      ``
     );
     await $.writeFile(_fileContent);
   } else {
@@ -199,10 +201,12 @@ function Env(name, opts) {
       } else return {};
     }
 
-    readFile() {
+   readFile(filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
@@ -210,7 +214,7 @@ function Env(name, opts) {
           } else {
             let textDecoder = new TextDecoder();
             let readContent = textDecoder.decode(readUint8Array);
-              console.log('读取文件成功！');
+            console.log('读取文件成功！');
             return readContent;
           }
         } else if (this.isNode()) {
@@ -227,16 +231,18 @@ function Env(name, opts) {
         return null;
       }
     }
-    writeFile(writeContent) {
+    writeFile(writeContent, filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let encoder = new TextEncoder();
           let writeUint8Array = encoder.encode(writeContent);
 
           if ($iCloud.writeFile(writeUint8Array, filePath)) {
-             console.log('写入文件内容成功！');
+            console.log('写入文件内容成功！');
           } else {
             console.log('写入文件内容失败！');
           }

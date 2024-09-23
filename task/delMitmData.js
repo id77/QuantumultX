@@ -1,34 +1,11 @@
-const $ = new Env('移除整合脚本数据');
-
-let fileName = 'test.js'; // 上传脚本名称
-
-const needBoxJS = $.getData('id77_ql_flag');
-if (needBoxJS === 'true') {
-  fileName = $.getData('id77_ql_fileName'); // 上传脚本名称
-}
+const $ = new Env('删除抓包数据');
 
 (async () => {
-  await task();
+  $prefs.removeValueForKey('id77_mitmData');
+  console.log('删除抓包数据成功');
 })()
   .catch((e) => $.logErr(e))
   .finally(() => $.done());
-
-async function task() {
-  const fileContent = await $.readFile();
-
-  if (
-    fileContent.includes(`//注入数据start`) &&
-    fileContent.includes(`//注入数据end`)
-  ) {
-    const _fileContent = fileContent.replace(
-      /\/\/注入数据start[\s\S\n]*\/\/注入数据end\n/,
-      ``
-    );
-    await $.writeFile(_fileContent);
-  } else {
-    console.log(`无需合并，已存在数据。`);
-  }
-}
 
 // https://github.com/chavyleung/scripts/blob/master/Env.js
 // prettier-ignore
@@ -201,10 +178,12 @@ function Env(name, opts) {
       } else return {};
     }
 
-    readFile() {
+   readFile(filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
@@ -212,7 +191,7 @@ function Env(name, opts) {
           } else {
             let textDecoder = new TextDecoder();
             let readContent = textDecoder.decode(readUint8Array);
-              console.log('读取文件成功！');
+            console.log('读取文件成功！');
             return readContent;
           }
         } else if (this.isNode()) {
@@ -229,16 +208,18 @@ function Env(name, opts) {
         return null;
       }
     }
-    writeFile(writeContent) {
+    writeFile(writeContent, filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let encoder = new TextEncoder();
           let writeUint8Array = encoder.encode(writeContent);
 
           if ($iCloud.writeFile(writeUint8Array, filePath)) {
-             console.log('写入文件内容成功！');
+            console.log('写入文件内容成功！');
           } else {
             console.log('写入文件内容失败！');
           }

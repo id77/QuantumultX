@@ -341,10 +341,12 @@ function Env(name, opts) {
       } else return {};
     }
 
-    readFile() {
+    readFile(filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
@@ -369,10 +371,12 @@ function Env(name, opts) {
         return null;
       }
     }
-    writeFile(writeContent) {
+    writeFile(writeContent, filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let encoder = new TextEncoder();
           let writeUint8Array = encoder.encode(writeContent);

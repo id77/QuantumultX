@@ -1,11 +1,27 @@
-const $ = new Env('删除抓包数据');
+const $ = new Env('抓包数据合并');
+
+let fileName = 'test.js'; // 上传脚本名称
+
+const needBoxJS = $.getData('id77_ql_flag');
+if (needBoxJS === 'true') {
+  fileName = $.getData('id77_ql_fileName'); // 上传脚本名称
+}
 
 (async () => {
-  $prefs.removeValueForKey('id77_mitmData');
-  console.log('删除抓包数据成功');
+  await task();
 })()
   .catch((e) => $.logErr(e))
   .finally(() => $.done());
+
+async function task() {
+  const filePath = `id77/${fileName.replace('.js', '.txt')}`;
+
+  if ($iCloud.removeFile(filePath)) {
+    console.log('清理成功！');
+  } else {
+    console.log('清理失败！');
+  }
+}
 
 // https://github.com/chavyleung/scripts/blob/master/Env.js
 // prettier-ignore
@@ -178,10 +194,12 @@ function Env(name, opts) {
       } else return {};
     }
 
-    readFile() {
+    readFile(filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
@@ -189,7 +207,7 @@ function Env(name, opts) {
           } else {
             let textDecoder = new TextDecoder();
             let readContent = textDecoder.decode(readUint8Array);
-              console.log('读取文件成功！');
+            console.log('读取文件成功！');
             return readContent;
           }
         } else if (this.isNode()) {
@@ -206,16 +224,18 @@ function Env(name, opts) {
         return null;
       }
     }
-    writeFile(writeContent) {
+    writeFile(writeContent, filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          const filePath = '../Scripts/' + fileName;
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
           // QuantumultX
           let encoder = new TextEncoder();
           let writeUint8Array = encoder.encode(writeContent);
 
           if ($iCloud.writeFile(writeUint8Array, filePath)) {
-             console.log('写入文件内容成功！');
+            console.log('写入文件内容成功！');
           } else {
             console.log('写入文件内容失败！');
           }

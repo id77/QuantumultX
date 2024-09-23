@@ -1,143 +1,10 @@
-/**
- * 
-apt-get install sqlite3
-sqlite3 /ql/db/database.sqlite
-UPDATE apps SET client_id = 'xxxxx' WHERE id = 2;
-UPDATE apps SET client_secret = 'xxxxxxx' WHERE id = 2;
-SELECT * FROM apps WHERE id = 2;
- * 
- */
-const $ = new Env('青龙上传脚本');
+const $ = new Env('抓包数据合并');
 
-let qlAddrs = ['192.168.1.1']; // 青龙面板地址
-let port = '5700'; // 青龙端口
-let clientId = '';
-let clientSecret = '';
 let fileName = 'test.js'; // 上传脚本名称
-let schedule = '54 59 1 * * *'; // 定时时间
-let taskName = 'test'; // 定时任务名称
 
 const needBoxJS = $.getData('id77_ql_flag');
 if (needBoxJS === 'true') {
-  qlAddrs = $.getData('id77_ql_addrs')?.split('@') ?? []; // 青龙面板地址
-  port = $.getData('id77_ql_port'); // 青龙端口
-  clientId = $.getData('id77_ql_clientId');
-  clientSecret = $.getData('id77_ql_clientSecret');
   fileName = $.getData('id77_ql_fileName'); // 上传脚本名称
-  schedule = $.getData('id77_ql_schedule'); // 定时时间
-  taskName = $.getData('id77_ql_taskName'); // 定时任务名称
-
-  const _qlAddrs = $.getData('id77_ql_addrs_other')?.split('@') ?? [];
-  if (_qlAddrs.length) {
-    qlAddrs = [...qlAddrs, ..._qlAddrs].filter((item) => !!item);
-  }
-}
-
-class Qinglong {
-  constructor(qlAddr, clientId, clientSecret) {
-    this.qlAddr = /https?:\/\//.test(qlAddr) ? qlAddr : `http://${qlAddr}`;
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
-    this.token = '';
-    this.qlHeaders = {};
-    // this.init();
-  }
-
-  init() {
-    return new Promise((resolve, reject) => {
-      const url = `${this.qlAddr}:${port}/open/auth/token?client_id=${this.clientId}&client_secret=${this.clientSecret}`;
-
-      $.get({ url, timeout: 2000 }, (err, resp, data) => {
-        if (resp?.statusCode === 200) {
-          const ret = JSON.parse(resp.body);
-          if (ret.code === 200) {
-            this.token = ret.data.token;
-            this.qlHeaders = {
-              'Content-Type': 'application/json;charset=UTF-8',
-              Authorization: `Bearer ${this.token}`,
-            };
-            console.log(`[*] 青龙登陆成功,token=${this.token}`);
-          } else {
-            console.log('[*] 青龙登陆失败');
-          }
-        } else {
-          console.log('[*] 青龙登陆失败,状态码:', resp?.statusCode);
-          console.log($.toStr(data));
-        }
-
-        if (err) {
-          console.log(`[*] 青龙登陆失败,错误:${$.toStr(err)}`);
-        }
-        resolve(data);
-      });
-    });
-  }
-
-  upload(fileContent) {
-    return new Promise((resolve, reject) => {
-      const url = `${this.qlAddr}:${port}/open/scripts`;
-      const body = JSON.stringify({
-        filename: fileName,
-        content: fileContent,
-        path: '/',
-      });
-
-      $.post(
-        { url, method: 'PUT', headers: this.qlHeaders, body, timeout: 2000 },
-        (err, resp, data) => {
-          if (resp?.statusCode === 200) {
-            const ret = JSON.parse(resp.body);
-            if (ret.code === 200) {
-              console.log(`[*] 上传成功`);
-            } else {
-              console.log(`[*] 上传失败`);
-            }
-          } else {
-            console.log(`[*] 上传失败,状态码:${resp?.statusCode}`);
-            console.log($.toStr(data));
-          }
-
-          if (err) {
-            console.log(`[*] 上传失败,错误:${$.toStr(err)}`);
-          }
-          resolve(data);
-        }
-      );
-    });
-  }
-
-  setCron(name, command, schedule) {
-    return new Promise((resolve, reject) => {
-      const url = `${this.qlAddr}:${port}/open/crons`;
-      const body = JSON.stringify({
-        name: name,
-        command: command,
-        schedule: schedule,
-      });
-
-      $.post(
-        { url, headers: this.qlHeaders, body, timeout: 2000 },
-        (err, resp, data) => {
-          if (resp?.statusCode === 200) {
-            const ret = JSON.parse(resp.body);
-            if (ret.code === 200) {
-              console.log(`[*] cron 设置成功`);
-            } else {
-              console.log(`[*] cron 设置失败`);
-            }
-          } else {
-            console.log(`[*] cron 设置失败,状态码:${resp?.statusCode}`);
-            console.log(`请检查是否已存在同时间同名字的任务！`);
-          }
-
-          if (err) {
-            console.log(`[*] cron 设置失败,错误:${$.toStr(err)}}`);
-          }
-          resolve(data);
-        }
-      );
-    });
-  }
 }
 
 (async () => {
@@ -147,24 +14,26 @@ class Qinglong {
   .finally(() => $.done());
 
 async function task() {
-  for (const qlAddr of qlAddrs) {
-    console.log(`[*] 正在操作 /${qlAddr}/ = = = = >`);
-    const ql = new Qinglong(qlAddr, clientId, clientSecret);
-    try {
-      await ql.init();
-      const fileContent = await $.readFile();
-      if (!fileContent) {
-        console.log(
-          `[*] 读取文件失败，请检查是否存在 ${fileName} 该文件，再执行此脚本！`
-        );
-        return;
-      }
-      await ql.upload(fileContent);
-      await ql.setCron(taskName, `task ${fileName} now`, schedule);
-    } catch (error) {
-      console.log(error);
-    }
-    console.log(`[*] 操作结束 /${qlAddr}/ < = = = =\n`);
+  const filePath = `id77/${fileName.replace('.js', '.txt')}`;
+  let fileContent = await $.readFile(filePath);
+  const reqArrStr = $.getData('id77_mitmData');
+  let deviceName = $.getData('id77_deviceName');
+
+  if (!deviceName) {
+    console.log(`请先配置设备名称。`);
+    return;
+  }
+
+  if (!fileContent) {
+    fileContent = '';
+  }
+
+  if (reqArrStr && !fileContent.includes(reqArrStr)) {
+    console.log(`合并数据`);
+    const _fileContent = `${fileContent}\n//from 📱${deviceName}\n${reqArrStr}`;
+    await $.writeFile(_fileContent, filePath);
+  } else {
+    console.log(`无需合并，已存在数据。`);
   }
 }
 
