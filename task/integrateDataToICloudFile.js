@@ -40,7 +40,7 @@ async function task() {
   let match;
   console.log(`\n已有以下设备数据：`);
   while ((match = regex.exec(fileContent)) !== null) {
-    console.log(`${match.index}@${match[0]}`);
+    console.log(`@${match[0]}`);
   }
 }
 
