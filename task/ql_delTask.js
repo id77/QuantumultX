@@ -273,7 +273,7 @@ function Env(name, opts) {
       if (val) {
         try {
           json = JSON.parse(this.getData(key));
-        } catch { }
+        } catch {}
       }
       return json;
     }
@@ -342,38 +342,54 @@ function Env(name, opts) {
     }
 
     readFile() {
-       
-        try {
-          if (typeof $iCloud !== 'undefined') {
-            const filePath = '../Scripts/' + fileName;
-            // QuantumultX
-            let readUint8Array = $iCloud.readFile(filePath);
-            if (readUint8Array === undefined) {
-              console.log('NO');
-            } else {
-              let textDecoder = new TextDecoder();
-              let readContent = textDecoder.decode(readUint8Array);
-                //   console.log(readContent);
-                return readContent;
-            }
-          } else if (this.isNode()) {
-            // Node.js
-            const filePath = __dirname + '/' + fileName;
-            const fs = require('fs');
-            const data = fs.readFileSync(filePath, 'utf8');
-            return data;
+      try {
+        if (typeof $iCloud !== 'undefined') {
+          const filePath = '../Scripts/' + fileName;
+          // QuantumultX
+          let readUint8Array = $iCloud.readFile(filePath);
+          if (readUint8Array === undefined) {
+            console.log('读取失败！');
           } else {
-            throw new Error('不受支持的环境');
+            let textDecoder = new TextDecoder();
+            let readContent = textDecoder.decode(readUint8Array);
+            console.log('读取文件成功！');
+            return readContent;
           }
-        } catch (err) {
-          console.log(err);
-          return null;
+        } else if (this.isNode()) {
+          // Node.js
+          const filePath = __dirname + '/' + fileName;
+          const fs = require('fs');
+          const data = fs.readFileSync(filePath, 'utf8');
+          return data;
+        } else {
+          throw new Error('不受支持的环境');
         }
-        
-        
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
     }
+    writeFile(writeContent) {
+      try {
+        if (typeof $iCloud !== 'undefined') {
+          const filePath = '../Scripts/' + fileName;
+          // QuantumultX
+          let encoder = new TextEncoder();
+          let writeUint8Array = encoder.encode(writeContent);
 
-
+          if ($iCloud.writeFile(writeUint8Array, filePath)) {
+            console.log('写入文件内容成功！');
+          } else {
+            console.log('写入文件内容失败！');
+          }
+        } else {
+          throw new Error('不受支持的环境');
+        }
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
+    }
 
     writeData() {
       if (this.isNode()) {
@@ -508,7 +524,7 @@ function Env(name, opts) {
       }
     }
 
-    get(opts, callback = () => { }) {
+    get(opts, callback = () => {}) {
       if (opts.headers) {
         delete opts.headers['Content-Type'];
         delete opts.headers['Content-Length'];
@@ -540,7 +556,11 @@ function Env(name, opts) {
               body,
               bodyBytes,
             } = resp;
-            callback(null, { status, statusCode, headers, body, bodyBytes }, body);
+            callback(
+              null,
+              { status, statusCode, headers, body, bodyBytes },
+              body
+            );
           },
           (err) => callback(err)
         );
@@ -576,7 +596,7 @@ function Env(name, opts) {
       }
     }
 
-    post(opts, callback = () => { }) {
+    post(opts, callback = () => {}) {
       const method = opts.method ? opts.method.toLocaleLowerCase() : 'post';
       // 如果指定了请求体, 但没指定`Content-Type`, 则自动生成
       // if (opts.body && opts.headers && !opts.headers['Content-Type']) {
@@ -585,7 +605,7 @@ function Env(name, opts) {
       if (opts.headers) {
         delete opts.headers['Host'];
         delete opts.headers['Content-Length'];
-      };
+      }
       if (this.isSurge() || this.isLoon()) {
         if (this.isSurge() && this.isNeedRewrite) {
           opts.headers = opts.headers || {};
@@ -738,7 +758,11 @@ function Env(name, opts) {
     }
 
     log(...logs) {
-      if (this.noLog || (this.noLogKey && (this.getData(this.noLogKey) || 'N').toLocaleUpperCase() === 'Y')) {
+      if (
+        this.noLog ||
+        (this.noLogKey &&
+          (this.getData(this.noLogKey) || 'N').toLocaleUpperCase() === 'Y')
+      ) {
         return;
       }
       if (logs.length > 0) {
