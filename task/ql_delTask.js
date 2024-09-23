@@ -350,7 +350,7 @@ function Env(name, opts) {
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
-            console.log('读取失败！');
+            console.log(`读取失败！可能该设备没同步到 ${filePath} 文件。`);
           } else {
             let textDecoder = new TextDecoder();
             let readContent = textDecoder.decode(readUint8Array);

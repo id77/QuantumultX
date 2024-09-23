@@ -30,10 +30,17 @@ async function task() {
 
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
     console.log(`合并数据`);
-    const _fileContent = `${fileContent}\n//from 📱${deviceName}\n${reqArrStr}`;
-    await $.writeFile(_fileContent, filePath);
+    fileContent = `${fileContent}\n//from 📱${deviceName}\n${reqArrStr}`;
+    const result = await $.writeFile(fileContent, filePath);
   } else {
     console.log(`无需合并，已存在数据。`);
+  }
+
+  const regex = /\/\/from 📱[^\n]+/g;
+  let match;
+  console.log(`\n已有以下设备数据：`);
+  while ((match = regex.exec(fileContent)) !== null) {
+    console.log(`${match.index}@${match[0]}`);
   }
 }
 
@@ -217,7 +224,7 @@ function Env(name, opts) {
           // QuantumultX
           let readUint8Array = $iCloud.readFile(filePath);
           if (readUint8Array === undefined) {
-            console.log('读取失败！');
+            console.log(`读取失败！可能该设备没同步到 ${filePath} 文件。`);
           } else {
             let textDecoder = new TextDecoder();
             let readContent = textDecoder.decode(readUint8Array);
