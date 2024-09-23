@@ -17,7 +17,7 @@ async function task() {
   const fileContent = await $.readFile(); // 读取js文件
   // 读取iCloud文件的数据
   const filePath = `id77/${fileName.replace('.js', '.txt')}`;
-  const reqArrStr =  = await $.readFile(filePath);
+  const reqArrStr = await $.readFile(filePath);
 
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
     const _fileContent = fileContent.replace(
