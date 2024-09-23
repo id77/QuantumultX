@@ -16,7 +16,8 @@
         "id77_ql_clientSecret",
         "id77_ql_fileName",
         "id77_ql_schedule",
-        "id77_ql_taskName"
+        "id77_ql_taskName",
+        "id77_deviceName"
       ],
       "settings": [
         {
@@ -79,6 +80,12 @@
         {
           "id": "id77_ql_clientSecret",
           "name": "青龙 Client Secret",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "id77_deviceName",
+          "name": "设备名称",
           "val": "",
           "type": "text"
         }
