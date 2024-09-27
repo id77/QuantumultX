@@ -1,4 +1,4 @@
-const $ = new Env('整合脚本');
+const $ = new Env('本机数据写入任务📁');
 
 let fileName = 'test.js'; // 上传脚本名称
 

@@ -1,4 +1,4 @@
-const $ = new Env('删除抓包数据');
+const $ = new Env('清除本机数据🔴');
 
 (async () => {
   $prefs.removeValueForKey('id77_mitmData');
