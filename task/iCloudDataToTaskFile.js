@@ -19,7 +19,7 @@ async function task() {
   const filePath = `id77/${fileName.replace('.js', '.txt')}`;
   const reqArrStr = await $.readFile(filePath);
 
-  const _fileContent = '';
+  let _fileContent = '';
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
     _fileContent += fileContent
       .replace(
