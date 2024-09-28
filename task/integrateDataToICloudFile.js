@@ -37,10 +37,25 @@ async function task() {
   }
 
   const regex = /\/\/from 📱[^\n]+/g;
-  let match;
-  console.log(`\n已有以下设备数据：`);
-  while ((match = regex.exec(fileContent)) !== null) {
-    console.log(`@${match[0]}`);
+  const regex3 = /{"url":"http/g;
+  if (regex.test(fileContent)) {
+    let matchArr = fileContent.match(regex) || [];
+
+    console.log(`\n已有以下设备数据：`);
+    for (let i = 0; i < matchArr.length; i++) {
+      const match = matchArr[i];
+      if (match) {
+        let regex2 = new RegExp(`${match}[\\s\\S\\n]+?(\n\n)`, 'g');
+        let match2 = fileContent.match(regex2) || [];
+        for (let j = 0; j < match2.length; j++) {
+          const match3 = match2[j];
+          if (match3) {
+            let num = match3.match(regex3)?.length || 0;
+            console.log(`@${match.replace('//', '')} 数目：${num}`);
+          }
+        }
+      }
+    }
   }
 }
 

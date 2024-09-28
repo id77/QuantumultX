@@ -24,7 +24,7 @@ async function task() {
         `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
       )
       .replace(
-        /(?<!\/\/\s+?)(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
+        /(?<!\/\/\s*?)(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
         `// $1`
       );
     await $.writeFile(_fileContent);
