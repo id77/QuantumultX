@@ -125,6 +125,9 @@
           "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/delICloudData.js"
         }
       ],
+      "descs_html": [
+        "☁️<a target=\"_blank\" href=\"shareddocuments://\">前往iCloud</a>"
+      ],
       "icons": [
         "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
         "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
