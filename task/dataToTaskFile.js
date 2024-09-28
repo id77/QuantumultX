@@ -18,10 +18,15 @@ async function task() {
   const reqArrStr = $.getData('id77_mitmData');
 
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
-    const _fileContent = fileContent.replace(
-      /(读取当前手机抓包所有数据.*?\n)/,
-      `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
-    );
+    const _fileContent = fileContent
+      .replace(
+        /(读取当前手机抓包所有数据.*?\n)/,
+        `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
+      )
+      .replace(
+        /(?<!\/\/\s+?)(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
+        `// $1\n`
+      );
     await $.writeFile(_fileContent);
   } else {
     console.log(`无需合并，已存在数据。`);
