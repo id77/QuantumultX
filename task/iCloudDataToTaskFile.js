@@ -27,7 +27,7 @@ async function task() {
       )
       .replace(
         /(?<!\/\/\s+?)(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
-        `// $1\n`
+        `// $1`
       );
     await $.writeFile(_fileContent);
   } else {
