@@ -36,27 +36,22 @@ async function task() {
     console.log(`无需合并，已存在数据。`);
   }
 
-  const regex = /\/\/from 📱[^\n]+/g;
-  const regex3 = /{"url":"http/g;
-  if (regex.test(fileContent)) {
-    let matchArr = fileContent.match(regex) || [];
+  // 使用split方法以//from 📱为分隔符分割内容
+  const sections = fileContent
+    .split(`//from 📱`)
+    ?.map((item) => (item.trim() ? `//from 📱${item}` : item));
 
-    console.log(`\n已有以下设备数据：`);
-    for (let i = 0; i < matchArr.length; i++) {
-      const match = matchArr[i];
-      if (match) {
-        let regex2 = new RegExp(`${match}.*?(?=\/\/from 📱|\n)`, 'gs');
-        let match2 = fileContent.match(regex2) || [];
-        for (let j = 0; j < match2.length; j++) {
-          const match3 = match2[j];
-          if (match3) {
-            let num = match3.match(regex3)?.length || 0;
-            console.log(`@${match.replace('//', '')} 数目：${num}`);
-          }
-        }
-      }
+  console.log(`\n已有以下设备数据：`);
+  // 遍历每个分割块并处理
+  sections.forEach((section) => {
+    if (section.trim()) {
+      const [device, ...rest] = section.split('\n');
+      const jsonContent = rest.join('\n').trim();
+      const num = jsonContent.split('\n')?.length;
+
+      console.log(`@${device.trim().replace('//', '')} 数目：${num}`);
     }
-  }
+  });
 }
 
 // https://github.com/chavyleung/scripts/blob/master/Env.js
