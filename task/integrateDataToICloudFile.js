@@ -30,7 +30,7 @@ async function task() {
 
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
     console.log(`合并数据`);
-    fileContent = `${fileContent}\n//from 📱${deviceName}\n${reqArrStr}`;
+    fileContent = `${fileContent}//from 📱${deviceName}\n${reqArrStr}\n`;
     const result = await $.writeFile(fileContent, filePath);
   } else {
     console.log(`无需合并，已存在数据。`);
@@ -45,7 +45,7 @@ async function task() {
     for (let i = 0; i < matchArr.length; i++) {
       const match = matchArr[i];
       if (match) {
-        let regex2 = new RegExp(`${match}.*?(?=\/\/from 📱|\z)`, 'gs');
+        let regex2 = new RegExp(`${match}.*?(?=\/\/from 📱|\n)`, 'gs');
         let match2 = fileContent.match(regex2) || [];
         for (let j = 0; j < match2.length; j++) {
           const match3 = match2[j];
