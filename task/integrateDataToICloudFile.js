@@ -45,7 +45,7 @@ async function task() {
     for (let i = 0; i < matchArr.length; i++) {
       const match = matchArr[i];
       if (match) {
-        let regex2 = new RegExp(`${match}.*?(?=\/\/from 📱iPhone|\z)`, 'gs');
+        let regex2 = new RegExp(`${match}.*?(?=\/\/from 📱|\z)`, 'gs');
         let match2 = fileContent.match(regex2) || [];
         for (let j = 0; j < match2.length; j++) {
           const match3 = match2[j];
