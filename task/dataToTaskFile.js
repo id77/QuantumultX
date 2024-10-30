@@ -24,8 +24,12 @@ async function task() {
         `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
       )
       .replace(
-        /(?<!\/\/\s*?)(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
-        `// $1`
+        /(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
+        (match, p1, offset, string) => {
+          // 检查匹配内容前是否有 //（避免重复添加）
+          const hasComment = string.slice(0, offset).trim().endsWith('//');
+          return hasComment ? match : `// ${match}`;
+        }
       );
     await $.writeFile(_fileContent);
   } else {
