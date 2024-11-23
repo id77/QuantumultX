@@ -21,8 +21,8 @@ async function task() {
     fileContent.includes(`//注入数据end`)
   ) {
     const _fileContent = fileContent.replace(
-      /\/\/注入数据start[\s\S\n]*\/\/注入数据end\n/,
-      ``
+      /(\/\/注入数据start)[\s\S\n]*(\/\/注入数据end\n)/,
+      `$1\n$2`
     );
     await $.writeFile(_fileContent);
   } else {

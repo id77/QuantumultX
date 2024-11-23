@@ -22,10 +22,7 @@ async function task() {
   let _fileContent = '';
   if (reqArrStr && !fileContent.includes(reqArrStr)) {
     _fileContent += fileContent
-      .replace(
-        /(读取当前手机抓包所有数据.*?\n)/,
-        `$1//注入数据start\n${reqArrStr}\n//注入数据end\n`
-      )
+      .replace(/(\/\/注入数据start.*?\n)/, `$1\n${reqArrStr}\n`)
       .replace(
         /(\.\.\.mitmDatas,|mitmDatas\[mitmDatas.length-1\],)/g,
         (match, p1, offset, string) => {
