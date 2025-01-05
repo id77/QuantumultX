@@ -135,6 +135,9 @@ if (
   // console.log(html);
 }
 
+// 去除html原有vconsole script标签
+html = html.replace(/<script[^<]*vconsole(\.min)?\.js.*?<\/script>/gi, '');
+
 // 提前点亮
 if (
   $request.url.includes('.com/coupons/show.action') &&
