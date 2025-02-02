@@ -269,34 +269,6 @@ try {
     const _${prefix}_id77_Map = Map;
   </script>`;
 
-  let mitmFuckEid = `<script ignore>
-   function _${prefix}_id77_upsetArr(arr){
-      return arr.sort(function(){ return Math.random() - 0.5});
-    }
-
-    // 极速版反跟踪phone
-    const Storage_setItem = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key, value) {
-      // if (this === window.localStorage) {
-      //      // do what you want if setItem is called on localStorage
-      //     Storage_setItem.apply(this, [key, value]);
-      // } else {
-
-      if (key === 'appEid') {
-        let appEid = value.slice(5);
-        if (appEid) {
-          Storage_setItem.apply(this, [
-            key,
-            'eidif' + _${prefix}_id77_upsetArr(appEid.split('')).join(''),
-          ]);
-        }
-      } else {
-        Storage_setItem.apply(this, [key, value]);
-      }
-      // }
-    };
-  </script>`;
-
   let scriptDoms = `<script src="https://unpkg.com/vconsole@3.14.6/dist/vconsole.min.js" ignore></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" ignore></script>`;
 
@@ -326,46 +298,6 @@ try {
       setTimeout(() => {
         if (window.handleCard) handleCard();
       }, 1);
-    }
-
-    if (Map !== _${prefix}_id77_Map) {
-      // 兼容保价页面
-      if(!Map.prototype.set &&((Map.toString && Map.toString()) || '').includes('this.elements')){
-        Map.prototype.set = function(_key, _value) { 
-          if (this.containsKey(_key) == true) {  
-            if (this.remove(_key) == true) { 
-                this.elements.push({ 
-                  key : _key, 
-                  value : _value 
-                }); 
-
-            } else { 
-              this.elements.push({ 
-                key : _key, 
-                value : _value 
-              }); 
-            } 
-          } else { 
-            this.elements.push({ 
-              key : _key, 
-              value : _value 
-            }); 
-          } 
-        }
-        Map.prototype.has = function(_key) { 
-          var bln = false; 
-          try { 
-            for (i = 0; i < this.elements.length; i++) {  
-              if (this.elements[i].key == _key){ 
-                bln = true; 
-              } 
-            } 
-          } catch (e) { 
-            bln = false;  
-          } 
-          return bln; 
-        }
-      }
     }
 
     if(${$.needReload}) {
@@ -1546,12 +1478,12 @@ try {
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
-      `${copyObject}${mitmFuckEid}${scriptDoms}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${mitmContent}$1`
     );
   } else {
     html = html.replace(
       /(<\/head>|<script|<div)/i,
-      `${copyObject}${mitmFuckEid}${scriptDoms}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${mitmContent}$1`
     );
   }
 
