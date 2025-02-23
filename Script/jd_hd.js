@@ -54,6 +54,8 @@ $.needReload = $.getData('id77_needReloadStatusCode')
   ?.map((item) => Number(item))
   ?.includes($response.statusCode);
 
+$.hideDomClass = $.getData('id77_hideDomClass');
+
 $.JDDomain.forEach((item) => {
   if ($.domain.includes(item)) {
     $.isJD = true;
@@ -134,6 +136,7 @@ if (
   // console.log(`test: ${/div/.test(text)}`);
   // console.log(html);
 }
+html = html.replace(/<!--[\s\S]*?-->/g, '');
 
 // 去除html原有vconsole script标签
 html = html.replace(/<script[^<]*vconsole(\.min)?\.js.*?<\/script>/gi, '');
@@ -161,6 +164,8 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
 
 html = html.replace(/11:30:00/g, `00:00:00`);
 html = html.replace(/10:00:00/g, `00:00:00`);
+
+html = html.replace(/id="submitBtna"/g, `id="submitBtn"`);
 
 // jd无货变有货
 if (
@@ -590,6 +595,12 @@ try {
       [].map.call(document.querySelectorAll('input[capture]'), item => {
         item.removeAttribute("capture");
       })
+
+      if ('${$.hideDomClass}') {
+        [].map.call(document.querySelectorAll('${$.hideDomClass}'), item => {
+          item.style.display = 'none';
+        })
+      }
 
       //双击选择需要编辑的容器
       _${prefix}_editTextDom = e.target;
