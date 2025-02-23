@@ -54,7 +54,7 @@ $.needReload = $.getData('id77_needReloadStatusCode')
   ?.map((item) => Number(item))
   ?.includes($response.statusCode);
 
-$.hideDomClass = $.getData('id77_selectedDomClass');
+$.hideDomClass = $.getData('id77_hideDomClass');
 
 $.JDDomain.forEach((item) => {
   if ($.domain.includes(item)) {
