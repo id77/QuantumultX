@@ -54,7 +54,7 @@ $.needReload = $.getData('id77_needReloadStatusCode')
   ?.map((item) => Number(item))
   ?.includes($response.statusCode);
 
-$.hideDomClass = $.getData('id77_hideDomClass');
+$.hideDomClass = $.getData('id77_selectedDomClass');
 
 $.JDDomain.forEach((item) => {
   if ($.domain.includes(item)) {
@@ -451,7 +451,7 @@ try {
     const _${prefix}_id77_currentKey = _${prefix}_id77_cookies_tool.get('pt_key');
     const _${prefix}_id77_needHideSwitch = localStorage.getItem('vConsole_switch_hide') === 'Y';
     const _${prefix}_id77_btnsDom = \`${tools}\`;
-    let _${prefix}_editTextDom;
+    let _${prefix}_selectedDom;
 
     const _${prefix}_id77_cookies = ${JSON.stringify(cookies)};
 
@@ -587,6 +587,16 @@ try {
       _${prefix}_id77_changeBtns();
       // if (_${prefix}_id77_cookies.length > 0) _${prefix}_id77_changeBtns();
     }
+
+    document.addEventListener('click', function (e) {
+      const excludeElement = document.getElementById('__vconsole'); // 要排除的元素
+
+      // 判断点击的元素是否是排除元素本身或其子元素
+      if (excludeElement && excludeElement.contains(event.target)) {
+          return; // 直接返回，不执行后续逻辑
+      }
+      _${prefix}_selectedDom = e.target;
+    });
     
     document.addEventListener('dblclick', function (e) {
       _${prefix}_id77_changeMitmUI();
@@ -601,9 +611,6 @@ try {
           item.style.display = 'none';
         })
       }
-
-      //双击选择需要编辑的容器
-      _${prefix}_editTextDom = e.target;
 
       // 解除按钮禁用
       [].map.call(document.querySelectorAll('button[disabled],[class*="disable" i]'), item => {
@@ -915,56 +922,40 @@ try {
             name: "改",
             global: true,
             onClick: function (event) {
-              function getMouseEventCaretRange(evt) {
-                var range,
-                  x = evt.clientX,
-                  y = evt.clientY;
+              if (_${prefix}_selectedDom) {
+                _${prefix}_selectedDom.contentEditable = true;
+                _${prefix}_selectedDom.focus();
 
-                if (document.body.createTextRange) {
-                  range = document.body.createTextRange();
-                  range.moveToPoint(x, y);
-                } else if (typeof document.createRange != 'undefined') {
-                  if (typeof evt.rangeParent != 'undefined') {
-                    range = document.createRange();
-                    range.setStart(evt.rangeParent, evt.rangeOffset);
-                    range.collapse(true);
-                  } else if (document.caretPositionFromPoint) {
-                    var pos = document.caretPositionFromPoint(x, y);
-                    range = document.createRange();
-                    range.setStart(pos.offsetNode, pos.offset);
-                    range.collapse(true);
-                  } else if (document.caretRangeFromPoint) {
-                    range = document.caretRangeFromPoint(x, y);
-                  }
-                }
-
-                return range;
+                _${prefix}_id77_vConsole.hide();
               }
 
-              function selectRange(range) {
-                if (range) {
-                  if (typeof range.select != 'undefined') {
-                    range.select();
-                  } else if (typeof window.getSelection != 'undefined') {
-                    var sel = window.getSelection();
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                  }
+            },
+          });
+
+          toolList.push({
+            name: "隐",
+            global: true,
+            onClick: function (event) {
+              if (_${prefix}_selectedDom) {
+                let element = _${prefix}_selectedDom;
+
+                while (element) {
+                    const style = window.getComputedStyle(element);
+
+                    // 获取 position 和 z-index
+                    const position = style.position;
+                    const zIndex = parseInt(style.zIndex, 10);
+
+                    // 判断是否符合条件
+                    if ((position === 'absolute' || position === 'fixed') && zIndex > 1) {
+                        element.style.display = 'none'; // 隐藏符合条件的元素
+                        break; // 结束循环
+                    }
+
+                    // 向上查找父级元素
+                    element = element.parentElement;
                 }
-              }
-
-              if (_${prefix}_editTextDom) {
-                _${prefix}_editTextDom.ondblclick = function (evt) {
-                  evt = evt || window.event;
-                  this.contentEditable = true;
-                  this.focus();
-                  var caretRange = getMouseEventCaretRange(evt);
-                  window.setTimeout(function () {
-                    selectRange(caretRange);
-                  }, 0);
-
-                  return false;
-                };
+                _${prefix}_id77_vConsole.hide();
 
               }
 
