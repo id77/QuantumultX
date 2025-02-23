@@ -164,7 +164,9 @@
       "name": "HD",
       "keys": [
         "id77_needReloadStatusCode",
-        "id77_click_interval,id77_notCache"
+        "id77_hideDomClass",
+        "id77_click_interval",
+        "id77_notCache"
       ],
       "settings": [
         {
@@ -173,6 +175,15 @@
           "val": "",
           "type": "text",
           "desc": " 比如502和404，填502@404，使用@间隔"
+        },
+        {
+          "id": "id77_hideDomClass",
+          "name": "双击隐藏元素",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "desc": "元素的class"
         },
         {
           "id": "id77_click_interval",
