@@ -3596,7 +3596,7 @@
           },
           // 下载当前应用所有脚本
           downloadScriptToICloud() {
-            if (!this.curapp || !this.curapp.scripts) {
+            if (!this.curapp.script && !this.curapp.scripts) {
               this.ui.snackbar.show = true;
               this.ui.snackbar.msg = "当前应用无可下载脚本！";
               this.ui.snackbar.color = "error";
@@ -3606,7 +3606,7 @@
             // 获取 curapp 和 curapp.scripts 中的 script 字段值
             const scripts = [
               ...(this.curapp.script ? [this.curapp.script] : []),
-              ...this.curapp.scripts
+              ...(this.curapp.scripts ? [this.curapp.scripts] : [])
                 .map((script) => script.script)
                 .filter(Boolean),
             ];
