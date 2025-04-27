@@ -299,6 +299,7 @@ async function handleApi() {
     '/saveGlobalBak': apiSaveGlobalBak,
     '/impGlobalBak': apiImpGlobalBak,
     '/revertGlobalBak': apiRevertGlobalBak,
+    '/downloadFile': apiDownloadFile,
     '/runScript': apiRunScript,
     '/saveData': apiSaveData,
     '/surge': apiSurge,
@@ -872,6 +873,104 @@ async function apiImpGlobalBak() {
   $.json = getBoxData();
 }
 
+async function apiDownloadFile() {
+  const opts = $.toObj($request.body);
+
+  if (
+    !opts.scripts ||
+    !Array.isArray(opts.scripts) ||
+    opts.scripts.length === 0
+  ) {
+    $.json = {
+      success: false,
+      message: '没有提供有效的脚本链接',
+    };
+    return;
+  }
+
+  const results = [];
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const scriptUrl of opts.scripts) {
+    try {
+      // 从URL中提取文件名
+      const fileName = scriptUrl.split('/').pop();
+
+      // 设置文件路径，默认保存到 Scripts 目录
+      const filePath = opts.path
+        ? `${opts.path}/${fileName}`
+        : `../Scripts/${fileName}`;
+
+      // 获取脚本内容
+      await $.http.get(scriptUrl).then(
+        (resp) => {
+          if (resp.body) {
+            // 写入文件到 iCloud
+            const content = resp.body;
+            const encoder = new TextEncoder();
+            const writeUint8Array = encoder.encode(content);
+
+            if ($iCloud.writeFile(writeUint8Array, filePath)) {
+              successCount++;
+              results.push({
+                url: scriptUrl,
+                fileName: fileName,
+                path: filePath,
+                success: true,
+              });
+              console.log(`成功下载脚本到: ${filePath}`);
+            } else {
+              failCount++;
+              results.push({
+                url: scriptUrl,
+                fileName: fileName,
+                path: filePath,
+                success: false,
+                error: '写入文件失败',
+              });
+              console.log(`写入文件失败: ${filePath}`);
+            }
+          } else {
+            failCount++;
+            results.push({
+              url: scriptUrl,
+              fileName: fileName,
+              success: false,
+              error: '获取脚本内容为空',
+            });
+          }
+        },
+        (error) => {
+          failCount++;
+          results.push({
+            url: scriptUrl,
+            fileName: fileName,
+            success: false,
+            error: `请求失败: ${error}`,
+          });
+        }
+      );
+    } catch (err) {
+      failCount++;
+      results.push({
+        url: scriptUrl,
+        success: false,
+        error: `处理脚本出错: ${err.message || err}`,
+      });
+      console.log(`下载脚本时发生错误: ${err}`);
+    }
+  }
+
+  $.json = {
+    success: true,
+    totalCount: opts.scripts.length,
+    successCount,
+    failCount,
+    results,
+  };
+}
+
 async function apiRunScript() {
   // 取消勿扰模式
   $.isMute = false;
@@ -1373,6 +1472,12 @@ function Env(name, opts) {
       });
     }
 
+    getFileNameFromUrl(url) {
+      // 使用正则表达式匹配文件名（包括后缀）
+      const match = url.match(/\/([^\/?#]+)(?:\?|#|$)/);
+      return match ? match[1] : null;
+    }
+
     runScript(script, runOpts) {
       return new Promise((resolve) => {
         let httpApi = this.getData('@chavy_boxjs_userCfgs.httpApi');
@@ -1449,6 +1554,30 @@ function Env(name, opts) {
           const fs = require('fs');
           const data = fs.readFileSync(filePath, 'utf8');
           return data;
+        } else {
+          throw new Error('不受支持的环境');
+        }
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
+    }
+
+    writeFile(writeContent, filePath) {
+      try {
+        if (typeof $iCloud !== 'undefined') {
+          if (!filePath) {
+            filePath = '../Scripts/' + fileName;
+          }
+          // QuantumultX
+          let encoder = new TextEncoder();
+          let writeUint8Array = encoder.encode(writeContent);
+
+          if ($iCloud.writeFile(writeUint8Array, filePath)) {
+            console.log('写入文件内容成功！');
+          } else {
+            console.log('写入文件内容失败！');
+          }
         } else {
           throw new Error('不受支持的环境');
         }
