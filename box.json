@@ -94,35 +94,43 @@
       "scripts": [
         {
           "name": "合并抓包数据至iCloud☁️",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/integrateDataToICloudFile.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/integrateDataToICloudFile.js",
+          "iCloudPath": "integrateDataToICloudFile.js"
         },
         {
           "name": "iCloud数据写入任务☁️📁",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/iCloudDataToTaskFile.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/iCloudDataToTaskFile.js",
+          "iCloudPath": "iCloudDataToTaskFile.js"
         },
         {
           "name": "本机数据写入任务📁",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/dataToTaskFile.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/dataToTaskFile.js",
+          "iCloudPath": "dataToTaskFile.js"
         },
         {
           "name": "上传文件设置任务🐉",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_task.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_task.js",
+          "iCloudPath": "ql_task.js"
         },
         {
           "name": "删除任务🐉",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_delTask.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/ql_delTask.js",
+          "iCloudPath": "ql_delTask.js"
         },
         {
           "name": "清理任务文件的数据📁",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/clearTaskFileData.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/clearTaskFileData.js",
+          "iCloudPath": "clearTaskFileData.js"
         },
         {
           "name": "清除本机数据🔴",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/delMitmData.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/delMitmData.js",
+          "iCloudPath": "delMitmData.js"
         },
         {
           "name": "清除iCloud数据🔴☁️",
-          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/delICloudData.js"
+          "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/delICloudData.js",
+          "iCloudPath": "delICloudData.js"
         }
       ],
       "descs_html": [
@@ -268,6 +276,7 @@
           "desc": "不懂不建议修改,  JSON格式，如：{\"pin\":\"手机号\"}"
         }
       ],
+      "iClodPath": "jdWuLiu.js",
       "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",
       "author": "@id77",
       "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",

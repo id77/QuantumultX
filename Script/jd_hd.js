@@ -1462,7 +1462,7 @@ try {
         : id77_date.getMinutes();
       document.querySelector('#id77_clicker_timerTime').value = id77_hh + ':' + id77_mm + ':00';
   </script>
-  <script src="https://cdn.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker_cdnv4.js" ignore></script>
+  <script src="https://fastly.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker_cdnv4.js" ignore></script>
   `;
 
   // if (/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i.test(html)) {
