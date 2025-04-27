@@ -3605,11 +3605,14 @@
 
             // 获取 curapp 和 curapp.scripts 中的 script 字段值
             const scripts = [
-              ...(this.curapp.script ? [this.curapp.script] : []),
-              ...(this.curapp.scripts ? [this.curapp.scripts] : [])
+              ...(this.curapp.scripts ? this.curapp.scripts : [])
                 .map((script) => script.script)
                 .filter(Boolean),
             ];
+
+            if (this.curapp.script) {
+              scripts.push(this.curapp.script);
+            }
 
             // 去重
             const uniqueScripts = Array.from(new Set(scripts));
