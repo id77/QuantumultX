@@ -276,7 +276,7 @@
           "desc": "不懂不建议修改,  JSON格式，如：{\"pin\":\"手机号\"}"
         }
       ],
-      "iClodPath": "jdWuLiu.js",
+      "iCloudPath": "jdWuLiu.js",
       "script": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",
       "author": "@id77",
       "repo": "https://raw.githubusercontent.com/id77/QuantumultX/master/task/jdWuLiu.js",
