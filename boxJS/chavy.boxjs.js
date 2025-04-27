@@ -884,7 +884,7 @@ async function apiRunScript() {
 
     try {
       script_text = await $.readFile(filePath);
-      console.log(`读取文件成功：${filePath}, ${script_text}`);
+      // console.log(`读取文件成功：${filePath}, ${script_text}`);
     } catch (e) {
       $eval_env.cached_logs.push(e);
     }

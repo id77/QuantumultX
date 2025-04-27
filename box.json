@@ -142,8 +142,29 @@
       ]
     },
     {
+      "id": "id77_mitm",
+      "name": "抓包数据",
+      "keys": ["id77_mitmData"],
+      "settings": [
+        {
+          "id": "id77_mitmData",
+          "name": "抓包数据",
+          "val": "",
+          "type": "textarea",
+          "desc": "抓包数据，一次性抓包，复制使用。新抓包需手动清除。",
+          "autoGrow": true,
+          "rows": 2
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "id77_clicker",
-      "name": "电击器",
+      "name": "点击器",
       "keys": ["id77_clicker_frequency", "id77_clicker_off_zIndex"],
       "settings": [
         {
@@ -465,27 +486,7 @@
         "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
       ]
     },
-    {
-      "id": "id77_mitm",
-      "name": "抓包数据",
-      "keys": ["id77_mitmData"],
-      "settings": [
-        {
-          "id": "id77_mitmData",
-          "name": "抓包数据",
-          "val": "",
-          "type": "textarea",
-          "desc": "抓包数据，一次性抓包，复制使用。新抓包需手动清除。",
-          "autoGrow": true,
-          "rows": 2
-        }
-      ],
-      "author": "@id77",
-      "icons": [
-        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
-        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
-      ]
-    },
+
     {
       "id": "id77_resp",
       "name": "数据体",
