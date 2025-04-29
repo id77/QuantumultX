@@ -58,7 +58,7 @@ class Qinglong {
             };
             console.log(`[*] 青龙登陆成功,token=${this.token}`);
           } else {
-            console.log('[*] 青龙登陆失败');
+            console.log(`[*] 青龙登陆失败,${ret?.message}`);
           }
         } else {
           console.log('[*] 青龙登陆失败,状态码:', resp?.statusCode);
@@ -86,7 +86,7 @@ class Qinglong {
               $.taskList = ret?.data?.data ?? [];
               console.log(`[*] 获取任务列表成功`);
             } else {
-              console.log(`[*] 获取任务列表失败`);
+              console.log(`[*] 获取任务列表失败,${ret?.message}`);
             }
           } else {
             console.log(`[*] 获取任务列表失败,状态码:${resp?.statusCode}`);
@@ -133,7 +133,7 @@ class Qinglong {
             if (ret.code === 200) {
               console.log(`[*] ${name} 任务删除成功`);
             } else {
-              console.log(`[*] ${name} 任务删除失败`);
+              console.log(`[*] ${name} 任务删除失败,${ret?.message}`);
             }
           } else {
             console.log(`[*] ${name} 任务删除失败,状态码:${resp?.statusCode}`);

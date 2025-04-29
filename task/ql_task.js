@@ -58,10 +58,10 @@ class Qinglong {
             };
             console.log(`[*] 青龙登陆成功,token=${this.token}`);
           } else {
-            console.log('[*] 青龙登陆失败');
+            console.log(`[*] 青龙登陆失败,${ret?.message}`);
           }
         } else {
-          console.log('[*] 青龙登陆失败,状态码:', resp?.statusCode);
+          console.log(`[*] 青龙登陆失败,状态码: ${resp?.statusCode}`);
           console.log($.toStr(data));
         }
 
@@ -90,10 +90,10 @@ class Qinglong {
             if (ret.code === 200) {
               console.log(`[*] 上传成功`);
             } else {
-              console.log(`[*] 上传失败`);
+              console.log(`[*] 上传失败,${ret?.message}`);
             }
           } else {
-            console.log(`[*] 上传失败,状态码:${resp?.statusCode}`);
+            console.log(`[*] 上传失败,状态码: ${resp?.statusCode}`);
             console.log($.toStr(data));
           }
 
@@ -123,7 +123,7 @@ class Qinglong {
             if (ret.code === 200) {
               console.log(`[*] cron 设置成功`);
             } else {
-              console.log(`[*] cron 设置失败`);
+              console.log(`[*] cron 设置失败,${ret?.message}`);
             }
           } else {
             console.log(`[*] cron 设置失败,状态码:${resp?.statusCode}`);
