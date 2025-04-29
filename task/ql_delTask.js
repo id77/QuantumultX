@@ -148,7 +148,10 @@ class Qinglong {
             resolve(data);
           }
         );
-      else console.log(`[*] ${name} 任务不存在`);
+      else {
+        console.log(`[*] ${name} 任务不存在`);
+        resolve();
+      }
     });
   }
 }
