@@ -115,36 +115,40 @@ class Qinglong {
       const url = `${this.qlAddr}:${port}/open/crons`;
       const body = JSON.stringify(ids);
 
-      $.post(
-        {
-          url,
-          method: 'DELETE',
-          headers: {
-            ...this.qlHeaders,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
+      if (ids.length)
+        $.post(
+          {
+            url,
+            method: 'DELETE',
+            headers: {
+              ...this.qlHeaders,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body,
+            timeout: 2000,
           },
-          body,
-          timeout: 2000,
-        },
-        (err, resp, data) => {
-          if (resp?.statusCode === 200) {
-            const ret = JSON.parse(resp.body);
-            if (ret.code === 200) {
-              console.log(`[*] ${name} 任务删除成功`);
+          (err, resp, data) => {
+            if (resp?.statusCode === 200) {
+              const ret = JSON.parse(resp.body);
+              if (ret.code === 200) {
+                console.log(`[*] ${name} 任务删除成功`);
+              } else {
+                console.log(`[*] ${name} 任务删除失败,${ret?.message}`);
+              }
             } else {
-              console.log(`[*] ${name} 任务删除失败,${ret?.message}`);
+              console.log(
+                `[*] ${name} 任务删除失败,状态码:${resp?.statusCode}`
+              );
             }
-          } else {
-            console.log(`[*] ${name} 任务删除失败,状态码:${resp?.statusCode}`);
-          }
 
-          if (err) {
-            console.log(`[*] ${name} 任务删除失败,错误:${$.toStr(err)}}`);
+            if (err) {
+              console.log(`[*] ${name} 任务删除失败,错误:${$.toStr(err)}}`);
+            }
+            resolve(data);
           }
-          resolve(data);
-        }
-      );
+        );
+      else console.log(`[*] ${name} 任务不存在`);
     });
   }
 }
