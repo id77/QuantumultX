@@ -162,6 +162,11 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
   }
 }
 
+html = html.replace(
+  /id="poster_status"\s+type="hidden"\s+value="0"/g,
+  'id="poster_status" type="hidden" value="1"'
+);
+
 html = html.replace(/("|')render("|'):false/g, '$1render$2:true');
 
 html = html.replace(/11:30:00/g, `00:00:00`);
