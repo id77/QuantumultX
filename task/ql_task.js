@@ -141,6 +141,7 @@ class Qinglong {
 }
 
 (async () => {
+  console.log(`\n📋 ${schedule} ${fileName}\n\n`);
   await task();
 })()
   .catch((e) => $.logErr(e))
