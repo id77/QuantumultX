@@ -555,6 +555,43 @@ try {
                 return;
               }
 
+              // 首先尝试从已加载的图片中获取base64，不刷新验证码
+              try {
+                // 检查图片是否已经完全加载
+                if (imgElement.complete && imgElement.naturalWidth > 0) {
+                  this.log("尝试直接从已加载图片获取base64");
+                  const canvas = document.createElement("canvas");
+                  canvas.width = imgElement.naturalWidth || imgElement.width;
+                  canvas.height = imgElement.naturalHeight || imgElement.height;
+                  
+                  if (canvas.width <= 0 || canvas.height <= 0) {
+                    throw new Error("Invalid image dimensions");
+                  }
+                  
+                  const ctx = canvas.getContext("2d");
+                  ctx.drawImage(imgElement, 0, 0);
+                  
+                  try {
+                    const dataURL = canvas.toDataURL("image/png");
+                    const base64 = dataURL.replace(/^data:image\\/(png|jpg|jpeg);base64,/, "");
+                    
+                    if (base64) {
+                      this.log("成功从已加载图片获取base64");
+                      resolve(base64);
+                      return;
+                    }
+                  } catch (canvasErr) {
+                    this.log("从已加载图片获取base64失败: " + canvasErr.message);
+                    // 不要返回，继续尝试其他方法
+                  }
+                } else {
+                  this.log("图片未完全加载，无法直接获取base64");
+                }
+              } catch (directErr) {
+                this.log("直接获取图片base64失败: " + directErr.message);
+                // 继续尝试其他方法
+              }
+              
               // 针对blob URL的处理
               if (imgElement.src.startsWith("blob:")) {
                 this.log("检测到Blob URL图片，尝试特殊处理");
@@ -680,7 +717,7 @@ try {
               try {
                 // 如果是重试，添加日志
                 if (retryCount > 0) {
-                  this.log(\`尝试第\${retryCount}次重试...\`);
+                  this.log("尝试第" + retryCount + "次重试...");
                 }
                 
                 // 转换图片为Base64
