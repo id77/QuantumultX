@@ -236,6 +236,42 @@
       ]
     },
     {
+      "id": "id77_ocr",
+      "name": "OCR",
+      "keys": ["id77_ocr_api", "id77_ocr_path", "id77_ocr_rules"],
+      "settings": [
+        {
+          "id": "id77_ocr_api",
+          "name": "OCR API",
+          "val": "",
+          "type": "text",
+          "desc": "自建 OCR API"
+        },
+        {
+          "id": "id77_ocr_path",
+          "name": "OCR MITM Path",
+          "placeholder": "/api/ocr",
+          "val": "",
+          "type": "text",
+          "desc": "重写路径，解决跨域问题"
+        },
+        {
+          "id": "id77_ocr_rules",
+          "name": "OCR 识别规则",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "desc": "识别规则，JSON 格式，\n[{\"domain\": \"test.cn\",\"captchaSelector\": \"img.test\",\"inputSelector\": \"input.test\",\"type\": \"数字\"}], \ntype 数字/字母/数字+字母/算术"
+        }
+      ],
+      "author": "@id77",
+      "icons": [
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png",
+        "https://raw.githubusercontent.com/id77/QuantumultX/master/icon/sim.png"
+      ]
+    },
+    {
       "id": "jdWulLiu",
       "name": "京东物流",
       "keys": [

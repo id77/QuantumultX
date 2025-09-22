@@ -34,7 +34,9 @@ let toolSwitch = $.getData('id77_tools_switch');
 const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
 const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
 const click_interval = $.getData('id77_click_interval') || 100;
-const ocrApi = $.getData('id77_ocr_api') || '/api/ocr'; // 验证码识别API地址
+const ocrApi = $.getData('id77_ocr_api'); // 验证码识别API地址
+const ocrPath = $.getData('id77_ocr_path') || '/api/ocr'; // 验证码识别API地址
+const ocrRules = JSON.parse($.getData('id77_ocr_rules') || '[]'); // 自定义验证码规则
 let urlSku;
 const skuCache = $.getData('id77_JDSkuId_Cache');
 const msgOpts = JSON.parse($.getData('id77_JDMsgOpts_Cache') || '{}');
@@ -85,15 +87,6 @@ if (modifiedHeaders['X-XSS-Protection'])
 if (modifiedHeaders['x-xss-protection'])
   delete modifiedHeaders['x-xss-protection'];
 
-// 删除 <meta http-equiv="Content-Security-Policy" ...>
-html = html.replace(
-  /<meta[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi,
-  ''
-);
-
-// 如果页面里有 <meta content="default-src 'self' ..."> 带 CSP 的情况也尝试删除
-html = html.replace(/<meta[^>]*content-security-policy[^>]*>/gi, '');
-
 let key = 'Set-Cookie';
 let cookies = $response.headers[key];
 if (!cookies) {
@@ -124,8 +117,8 @@ if (!html.includes('</head>')) {
 }
 
 const charset = (
-  $response.body.match(/charset=("|')(.+?)("|')/)?.[2] || ''
-).toLowerCase();
+  $response?.body?.match(/charset=("|')(.+?)("|')/)?.[2] || ''
+)?.toLowerCase();
 
 const contentType =
   modifiedHeaders['Content-Type'] || modifiedHeaders['content-type'] || '';
@@ -296,19 +289,24 @@ try {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" ignore></script>`;
 
   // 创建验证码识别器函数
-  function createCaptchaRecognizer(ocrApiUrl) {
+  function createCaptchaRecognizer(ocrPath, ocrRules) {
+    const ocrRule =
+      ocrRules.filter(
+        (rule) => rule?.domain && $.domain.includes(rule?.domain)
+      )?.[0] || null;
     return `<script ignore>
     // 验证码识别器
     (function() {
       // 只有配置了API URL才启用OCR功能
-      const ocrApiUrl = "${ocrApiUrl}";
-      if (!ocrApiUrl) return;
+      const ocrPath = "${ocrPath}";
+      if (!ocrPath) return;
 
       // 验证码识别器类
       class _${prefix}_id77_CaptchaRecognizer {
         constructor(options = {}) {
           this.options = Object.assign({
-            ocrApiUrl: ocrApiUrl,
+            ocrPath: ocrPath,
+            ocrRule: ${JSON.stringify(ocrRule)},
             captchaSelectors: [
               'img[src*="captcha"]',
               'img[src*="verify"]',
@@ -451,10 +449,18 @@ try {
           
           // 标准查找流程
           if (captchaImgs.length === 0) {
-            for (const selector of this.options.captchaSelectors) {
-              const imgs = document.querySelectorAll(selector);
+            if (this.options.ocrRule) {
+              // 应用自定义验证码规则
+              const imgs = document.querySelectorAll(rule.captchaSelector);
               if (imgs.length > 0) {
                 captchaImgs = [...captchaImgs, ...imgs];
+              }
+            } else {
+              for (const selector of this.options.captchaSelectors) {
+                const imgs = document.querySelectorAll(selector);
+                if (imgs.length > 0) {
+                  captchaImgs = [...captchaImgs, ...imgs];
+                }
               }
             }
           }
@@ -491,10 +497,18 @@ try {
         findCaptchaInputs() {
           let inputs = [];
           
-          for (const selector of this.options.inputSelectors) {
-            const foundInputs = document.querySelectorAll(selector);
+          if (this.options.ocrRule) {
+            // 应用自定义验证码规则
+            const foundInputs = document.querySelectorAll(rule.inputSelector);
             if (foundInputs.length > 0) {
               inputs = [...inputs, ...foundInputs];
+            }
+          } else {
+            for (const selector of this.options.inputSelectors) {
+              const foundInputs = document.querySelectorAll(selector);
+              if (foundInputs.length > 0) {
+                inputs = [...inputs, ...foundInputs];
+              }
             }
           }
           
@@ -742,14 +756,40 @@ try {
                 this.log("发送OCR请求...");
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-                
+
+                const data = { image: base64 };
+
+                switch (this.options?.ocrRule?.type) {
+                    case "数字":
+                    // 处理数字类型的逻辑
+                    data.charset_range = "0123456789";
+                    break;
+
+                  case "字母":
+                    // 处理字母类型的逻辑
+                    data.charset_range = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    break;
+                  case "数字+字母":
+                    // 处理数字和字母类型的逻辑
+                    data.charset_range = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    break;
+                  case "算术":
+                    // 处理算术类型的逻辑
+                    data.charset_range = "零一二三四五六七八九十百千万加减乘除0123456789+-x/=";
+                    data.type = "count";
+                    break;
+
+                  default:
+                    break;
+                }
+
                 try {
-                  const response = await fetch(this.options.ocrApiUrl, {
+                  const response = await fetch(this.options.ocrPath, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ image: base64 }),
+                    body: JSON.stringify(data),
                     signal: controller.signal
                   });
                   
@@ -934,7 +974,7 @@ try {
       // 页面加载完成后初始化验证码识别器
       window._${prefix}_id77_captchaRecognizer = null;
       function _${prefix}_id77_initCaptchaRecognizer() {
-        if (!window._${prefix}_id77_captchaRecognizer && ocrApiUrl) {
+        if (!window._${prefix}_id77_captchaRecognizer && ocrPath) {
           window._${prefix}_id77_captchaRecognizer = new _${prefix}_id77_CaptchaRecognizer();
         }
       }
@@ -949,7 +989,8 @@ try {
   </script>`;
   }
   // 创建验证码识别器
-  let captchaScript = ocrApi ? createCaptchaRecognizer(ocrApi) : '';
+  let captchaScript =
+    ocrApi && ocrPath ? createCaptchaRecognizer(ocrPath, ocrRules) : '';
 
   if (vx77) {
     html = html.replace(
