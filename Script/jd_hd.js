@@ -449,9 +449,9 @@ try {
           
           // 标准查找流程
           if (captchaImgs.length === 0) {
-            if (this.options.ocrRule) {
+            if (this.options.ocrRule?.captchaSelector) {
               // 应用自定义验证码规则
-              const imgs = document.querySelectorAll(rule.captchaSelector);
+              const imgs = document.querySelectorAll(this.options.ocrRule.captchaSelector);
               if (imgs.length > 0) {
                 captchaImgs = [...captchaImgs, ...imgs];
               }
@@ -497,9 +497,9 @@ try {
         findCaptchaInputs() {
           let inputs = [];
           
-          if (this.options.ocrRule) {
+          if (this.options.ocrRule?.inputSelector) {
             // 应用自定义验证码规则
-            const foundInputs = document.querySelectorAll(rule.inputSelector);
+            const foundInputs = document.querySelectorAll(this.options.ocrRule.inputSelector);
             if (foundInputs.length > 0) {
               inputs = [...inputs, ...foundInputs];
             }
@@ -809,8 +809,15 @@ try {
                   
                   this.log("识别结果: " + text);
                   this.lastRecognized = text;
+                  if (this.options.ocrRule?.regex) {
+                    for (const rule of this.options.ocrRule.regex) {
+                      const regex = new RegExp(rule.pattern, rule.flags || "");
+
+                      this.lastRecognized = this.lastRecognized.replace(regex, rule.substitution)
+                    }
+                  }
                   
-                  return text;
+                  return this.lastRecognized;
                 } catch (apiError) {
                   if (apiError.name === 'AbortError') {
                     throw new Error("OCR请求超时");

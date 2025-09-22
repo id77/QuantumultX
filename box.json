@@ -262,7 +262,7 @@
           "type": "textarea",
           "autoGrow": true,
           "rows": 2,
-          "desc": "识别规则，JSON 格式，\n[{\"domain\": \"test.cn\",\"captchaSelector\": \"img.test\",\"inputSelector\": \"input.test\",\"type\": \"数字\"}], \ntype 数字/字母/数字+字母/算术"
+          "desc": "识别规则，JSON 格式，\n[{\"domain\": \"test.cn\",\"captchaSelector\": \"img.test\",\"inputSelector\": \"input.test\",\"type\": \"数字\", \"regex\": [{\"pattern\": \"test\", \"flags\": \"g\", \"substitution\": \"1\"}]}], \ntype 正则/数字/字母/数字+字母/算术"
         }
       ],
       "author": "@id77",
