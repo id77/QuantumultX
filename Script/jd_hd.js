@@ -18,6 +18,7 @@ https?://.*\.moxigame\.cn url script-response-body https://raw.githubusercontent
 [mitm]
 hostname = -lite-msg.m.jd.com, -jdcs.m.jd.com, -ddms.jd.com, -redpoint-msg.m.jd.com, -msjdpay.jd.com, -payfinish.jd.com, -payfinish.m.jd.com, *.jd.com, *.*.jd.com ,*.jd.hk, *.*.jd.hk, *.moxigame.cn
 */
+
 const $ = new Env('京东助手', { noLog: true });
 $.domain = $request.url.match(/https?:\/\/([^\/]+)/)[1];
 $.JDDomain = ['jd.com', 'jd.hk', 'jingxi.com'];
@@ -33,6 +34,7 @@ let toolSwitch = $.getData('id77_tools_switch');
 const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
 const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
 const click_interval = $.getData('id77_click_interval') || 100;
+const ocrApi = $.getData('id77_ocr_api') || '/api/ocr'; // 验证码识别API地址
 let urlSku;
 const skuCache = $.getData('id77_JDSkuId_Cache');
 const msgOpts = JSON.parse($.getData('id77_JDMsgOpts_Cache') || '{}');
@@ -82,6 +84,15 @@ if (modifiedHeaders['X-XSS-Protection'])
   delete modifiedHeaders['X-XSS-Protection'];
 if (modifiedHeaders['x-xss-protection'])
   delete modifiedHeaders['x-xss-protection'];
+
+// 删除 <meta http-equiv="Content-Security-Policy" ...>
+html = html.replace(
+  /<meta[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi,
+  ''
+);
+
+// 如果页面里有 <meta content="default-src 'self' ..."> 带 CSP 的情况也尝试删除
+html = html.replace(/<meta[^>]*content-security-policy[^>]*>/gi, '');
 
 let key = 'Set-Cookie';
 let cookies = $response.headers[key];
@@ -283,6 +294,625 @@ try {
 
   let scriptDoms = `<script src="https://unpkg.com/vconsole@3.14.6/dist/vconsole.min.js" ignore></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" ignore></script>`;
+
+  // 创建验证码识别器函数
+  function createCaptchaRecognizer(ocrApiUrl) {
+    return `<script ignore>
+    // 验证码识别器
+    (function() {
+      // 只有配置了API URL才启用OCR功能
+      const ocrApiUrl = "${ocrApiUrl}";
+      if (!ocrApiUrl) return;
+
+      // 验证码识别器类
+      class _${prefix}_id77_CaptchaRecognizer {
+        constructor(options = {}) {
+          this.options = Object.assign({
+            ocrApiUrl: ocrApiUrl,
+            captchaSelectors: [
+              'img[src*="captcha"]',
+              'img[src*="verify"]',
+              'img[alt*="验证码"]',
+              'img[title*="验证码"]',
+              'img[alt*="captcha"]',
+              'img[id="captchaPic"]',
+              '.validate-code img',
+              'img[style="z-index: 2; position: absolute; bottom: -11px; left: 206px; width: 88px; height: 40px;"]',
+              '.authcode img[id="authImage"]',
+              'img[class="verification-img"]',
+              'img[name="imgCaptcha"]',
+              'img[src*="code" i]'
+            ],
+            inputSelectors: [
+              "input[name*='captcha']",
+              "input[name*='verify']",
+              "input[id='authcode']",
+              "input[placeholder*='验证码']:not([placeholder*='短信'])",
+              "input[placeholder*='captcha']",
+              "input[id*='captcha']",
+              "input[id*='verify']",
+              "input[class*='captcha']",
+              "input[class*='verify']",
+              "input[placeholder*='校验码']"
+            ],
+            autoRecognize: true,
+            autoFill: true,
+            copyToClipboard: true,
+            debug: false
+          }, options);
+
+          this.captchaObserver = null;
+          this.recognizing = false;
+          this.lastRecognized = null;
+          
+          if (this.options.autoRecognize) {
+            this.setupObserver();
+            this.findAndRecognize();
+          }
+          
+          this.addCaptchaButton();
+          this.log("验证码识别器已初始化");
+        }
+        
+        log(message) {
+          if (this.options.debug) {
+            console.log("[验证码识别] " + message);
+          }
+        }
+        
+        // 设置DOM观察器，监视验证码图片变化
+        setupObserver() {
+          // 为避免频繁触发，增加一个节流控制
+          let observerThrottle = false;
+          
+          this.captchaObserver = new MutationObserver((mutations) => {
+            // 如果正在识别或节流中，不执行操作
+            if (this.recognizing || observerThrottle) return;
+            
+            for (const mutation of mutations) {
+              if (mutation.type === "childList" || mutation.type === "attributes") {
+                const captchaImgs = this.findCaptchaImages();
+                if (captchaImgs.length > 0) {
+                  // 设置节流锁，防止短时间内多次触发
+                  observerThrottle = true;
+                  
+                  // 延迟执行识别，给页面充分渲染时间
+                  setTimeout(() => {
+                    this.findAndRecognize();
+                    
+                    // 3秒后解除节流锁
+                    setTimeout(() => {
+                      observerThrottle = false;
+                    }, 3000);
+                  }, 500);
+                  
+                  break;
+                }
+              }
+            }
+          });
+          
+          this.captchaObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["src"]
+          });
+        }
+        
+        // 查找页面中的验证码图片
+        findCaptchaImages() {
+          let captchaImgs = [];
+          
+          // 特殊网站处理
+          const currentURL = window.location.href;
+          
+          // 中国知网特殊处理
+          if (currentURL.includes('cnki.net')) {
+            this.log("检测到知网网站，应用特殊处理规则");
+            
+            // 知网验证码特殊处理
+            const cnkiCaptchaImgs = document.querySelectorAll('img#checkCodeImg, img#imgCheckCode, img.captcha-img, img[alt="验证码"]');
+            if (cnkiCaptchaImgs.length > 0) {
+              captchaImgs = [...captchaImgs, ...cnkiCaptchaImgs];
+              this.log(\`找到\${cnkiCaptchaImgs.length}个知网验证码图片\`);
+            }
+            
+            // 查找可能包含验证码的canvas元素
+            const canvasElements = document.querySelectorAll('canvas');
+            for (const canvas of canvasElements) {
+              if (canvas.width > 30 && canvas.width < 200 && 
+                  canvas.height > 20 && canvas.height < 100) {
+                try {
+                  // 尝试从canvas创建一个临时图片对象
+                  const tempImg = new Image();
+                  tempImg.src = canvas.toDataURL('image/png');
+                  tempImg.width = canvas.width;
+                  tempImg.height = canvas.height;
+                  captchaImgs.push(tempImg);
+                  this.log("从canvas创建的验证码图片已添加");
+                } catch (e) {
+                  this.log("无法从canvas创建图片: " + e.message);
+                }
+              }
+            }
+            
+            // 尝试查找Blob URL的图片
+            const allImgs = document.querySelectorAll('img');
+            for (const img of allImgs) {
+              if (img.src && img.src.startsWith('blob:') && 
+                  img.width > 30 && img.width < 200 && 
+                  img.height > 20 && img.height < 100) {
+                captchaImgs.push(img);
+                this.log("找到blob URL验证码图片: " + img.src);
+              }
+            }
+          }
+          
+          // 标准查找流程
+          if (captchaImgs.length === 0) {
+            for (const selector of this.options.captchaSelectors) {
+              const imgs = document.querySelectorAll(selector);
+              if (imgs.length > 0) {
+                captchaImgs = [...captchaImgs, ...imgs];
+              }
+            }
+          }
+          
+          // 基于图片尺寸的启发式查找
+          if (captchaImgs.length === 0) {
+            const allImgs = document.querySelectorAll("img");
+            for (const img of allImgs) {
+              // 验证码图片通常是小尺寸图片
+              if (img.width > 30 && img.width < 200 && 
+                  img.height > 20 && img.height < 100) {
+                captchaImgs.push(img);
+              }
+            }
+          }
+          
+          // 过滤掉无效图片
+          captchaImgs = captchaImgs.filter(img => {
+            // 检查图片是否可见
+            const isVisible = !(img.offsetParent === null || 
+                              img.style.display === 'none' || 
+                              img.style.visibility === 'hidden');
+            
+            // 检查图片是否加载完成
+            const isLoaded = img.complete && img.naturalWidth !== 0;
+            
+            return isVisible && (isLoaded || img.src.startsWith('blob:') || img.src.startsWith('data:'));
+          });
+          
+          return captchaImgs;
+        }
+        
+        // 查找验证码输入框
+        findCaptchaInputs() {
+          let inputs = [];
+          
+          for (const selector of this.options.inputSelectors) {
+            const foundInputs = document.querySelectorAll(selector);
+            if (foundInputs.length > 0) {
+              inputs = [...inputs, ...foundInputs];
+            }
+          }
+          
+          // 如果未找到输入框，查找可能的相近输入框
+          if (inputs.length === 0) {
+            const captchaImgs = this.findCaptchaImages();
+            if (captchaImgs.length > 0) {
+              // 获取验证码图片附近的输入框
+              for (const img of captchaImgs) {
+                const parent = img.parentElement;
+                const grandParent = parent?.parentElement;
+                
+                // 检查同级元素
+                const siblings = parent?.children || [];
+                for (const sibling of siblings) {
+                  if (sibling.tagName === "INPUT") {
+                    inputs.push(sibling);
+                  }
+                }
+                
+                // 检查父级同级元素
+                const parentSiblings = grandParent?.children || [];
+                for (const sibling of parentSiblings) {
+                  const siblingInputs = sibling.querySelectorAll("input");
+                  if (siblingInputs.length > 0) {
+                    inputs = [...inputs, ...siblingInputs];
+                  }
+                }
+              }
+            }
+          }
+          
+          return inputs;
+        }
+        
+        // 将图片转换为base64格式
+        async imageToBase64(imgElement) {
+          return new Promise((resolve, reject) => {
+            try {
+              // 如果图片不存在或无效，直接失败
+              if (!imgElement || !imgElement.src) {
+                reject(new Error("Invalid image element or source"));
+                return;
+              }
+
+              // 如果图片已经是base64格式
+              if (imgElement.src.startsWith("data:")) {
+                try {
+                  const base64Data = imgElement.src.split(",")[1];
+                  if (base64Data) {
+                    resolve(base64Data);
+                  } else {
+                    reject(new Error("Invalid base64 image data"));
+                  }
+                } catch (e) {
+                  reject(new Error("Failed to process base64 image: " + e.message));
+                }
+                return;
+              }
+
+              // 针对blob URL的处理
+              if (imgElement.src.startsWith("blob:")) {
+                this.log("检测到Blob URL图片，尝试特殊处理");
+                
+                // 方法1：直接使用已渲染的图片进行绘制
+                try {
+                  const canvas = document.createElement("canvas");
+                  canvas.width = imgElement.naturalWidth || imgElement.width;
+                  canvas.height = imgElement.naturalHeight || imgElement.height;
+                  
+                  if (canvas.width <= 0 || canvas.height <= 0) {
+                    throw new Error("Invalid image dimensions");
+                  }
+                  
+                  const ctx = canvas.getContext("2d");
+                  ctx.drawImage(imgElement, 0, 0);
+                  
+                  try {
+                    const dataURL = canvas.toDataURL("image/png");
+                    const base64 = dataURL.replace(/^data:image\\/(png|jpg|jpeg);base64,/, "");
+                    
+                    if (base64) {
+                      resolve(base64);
+                      return;
+                    }
+                  } catch (canvasErr) {
+                    this.log("Canvas转换失败，尝试其他方法: " + canvasErr.message);
+                  }
+                } catch (e) {
+                  this.log("直接绘制Blob图片失败: " + e.message);
+                  // 继续尝试下一种方法
+                }
+              }
+              
+              // 通用方法：使用Image对象加载图片
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              
+              const img = new Image();
+              // 允许跨域访问
+              img.crossOrigin = "Anonymous";
+              
+              // 设置超时
+              const timeoutId = setTimeout(() => {
+                img.src = ""; // 中断加载
+                reject(new Error("Image loading timeout"));
+              }, 5000);
+              
+              img.onload = () => {
+                clearTimeout(timeoutId);
+                
+                try {
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  
+                  if (canvas.width <= 0 || canvas.height <= 0) {
+                    reject(new Error("Invalid image dimensions after load"));
+                    return;
+                  }
+                  
+                  // 绘制图像
+                  ctx.drawImage(img, 0, 0);
+                  
+                  try {
+                    // 获取base64数据
+                    const dataURL = canvas.toDataURL("image/png");
+                    const base64 = dataURL.replace(/^data:image\\/(png|jpg|jpeg);base64,/, "");
+                    
+                    if (base64) {
+                      resolve(base64);
+                    } else {
+                      reject(new Error("Failed to convert image to base64"));
+                    }
+                  } catch (toDataUrlError) {
+                    reject(new Error("Failed to call toDataURL: " + toDataUrlError.message));
+                  }
+                } catch (drawError) {
+                  reject(new Error("Failed to draw image to canvas: " + drawError.message));
+                }
+              };
+              
+              img.onerror = (error) => {
+                clearTimeout(timeoutId);
+                this.log("图片加载失败: " + (error ? error.message : "未知错误"));
+                reject(new Error("Failed to load image"));
+              };
+              
+              // 避免缓存并添加随机参数
+              const timestamp = new Date().getTime();
+              const randomParam = Math.floor(Math.random() * 1000000);
+              
+              try {
+                if (imgElement.src.includes("?")) {
+                  img.src = imgElement.src + "&t=" + timestamp + "&r=" + randomParam;
+                } else {
+                  img.src = imgElement.src + "?t=" + timestamp + "&r=" + randomParam;
+                }
+              } catch (srcError) {
+                reject(new Error("Failed to set image src: " + srcError.message));
+              }
+            } catch (error) {
+              reject(new Error("Base64 conversion error: " + error.message));
+            }
+          });
+        }
+        
+        // 通过API识别验证码
+        async recognizeCaptcha(imgElement) {
+          if (this.recognizing) {
+            this.log("正在进行识别，请稍候");
+            return null;
+          }
+          
+          this.recognizing = true;
+          this.log("开始识别验证码");
+          
+          try {
+            // 添加重试逻辑
+            const maxRetries = 2;
+            let retryCount = 0;
+            
+            while (retryCount <= maxRetries) {
+              try {
+                // 如果是重试，添加日志
+                if (retryCount > 0) {
+                  this.log(\`尝试第\${retryCount}次重试...\`);
+                }
+                
+                // 转换图片为Base64
+                let base64;
+                try {
+                  base64 = await this.imageToBase64(imgElement);
+                  if (!base64) {
+                    throw new Error("图片转Base64失败，结果为空");
+                  }
+                } catch (imgError) {
+                  if (retryCount >= maxRetries) {
+                    throw new Error("图片处理失败: " + imgError.message);
+                  }
+                  retryCount++;
+                  this.log("图片处理失败，准备重试: " + imgError.message);
+                  // 短暂等待后重试
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  continue;
+                }
+                
+                // 请求OCR API
+                this.log("发送OCR请求...");
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+                
+                try {
+                  const response = await fetch(this.options.ocrApiUrl, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ image: base64 }),
+                    signal: controller.signal
+                  });
+                  
+                  clearTimeout(timeoutId);
+                  
+                  if (!response.ok) {
+                    throw new Error(\`OCR API 请求失败: \${response.status} \${response.statusText}\`);
+                  }
+                  
+                  const result = await response.json();
+                  const text = result?.data?.text || result?.data || "";
+                  
+                  // 验证识别结果
+                  if (!text || text.trim() === "") {
+                    throw new Error("OCR识别结果为空");
+                  }
+                  
+                  this.log("识别结果: " + text);
+                  this.lastRecognized = text;
+                  
+                  return text;
+                } catch (apiError) {
+                  if (apiError.name === 'AbortError') {
+                    throw new Error("OCR请求超时");
+                  }
+                  
+                  if (retryCount >= maxRetries) {
+                    throw apiError;
+                  }
+                  
+                  retryCount++;
+                  this.log("API请求失败，准备重试: " + apiError.message);
+                  // 稍微长一点的等待时间后重试API请求
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+              } catch (error) {
+                if (retryCount >= maxRetries) {
+                  this.log("识别失败，已达到最大重试次数: " + error.message);
+                  return null;
+                }
+                
+                retryCount++;
+                this.log("发生错误，准备重试: " + error.message);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+            
+            return null;
+          } catch (finalError) {
+            this.log("识别最终失败: " + finalError.message);
+            return null;
+          } finally {
+            // 确保无论成功失败都将标志恢复为false
+            setTimeout(() => {
+              this.recognizing = false;
+              this.log("识别流程结束，可以进行下一次识别");
+            }, 500);
+          }
+        }
+        
+        
+        // 填充验证码到输入框
+        fillCaptcha(text) {
+          if (!text) return false;
+          
+          const inputs = this.findCaptchaInputs();
+          let filled = false;
+          
+          for (const input of inputs) {
+            input.value = text;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+            filled = true;
+            this.log("已填充验证码: " + text);
+          }
+          
+          return filled;
+        }
+        
+        // 复制到剪贴板
+        copyTextToClipboard(text) {
+          try {
+            const input = document.createElement("input");
+            input.style.position = "fixed";
+            input.style.opacity = 0;
+            input.value = text;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand("copy");
+            document.body.removeChild(input);
+            this.log("已复制到剪贴板: " + text);
+            return true;
+          } catch (error) {
+            this.log("复制到剪贴板失败: " + error.message);
+            return false;
+          }
+        }
+        
+        // 查找并识别验证码
+        async findAndRecognize() {
+          // 如果正在识别过程中，直接返回，避免重复操作
+          if (this.recognizing) {
+            this.log("正在识别中，跳过此次调用");
+            return null;
+          }
+          
+          const captchaImgs = this.findCaptchaImages();
+          if (captchaImgs.length === 0) {
+            this.log("未找到验证码图片");
+            return null;
+          }
+          
+          // 保存图片src，用于避免重复识别相同图片
+          const imgSrcs = new Set();
+          const uniqueImgs = [];
+          
+          for (const img of captchaImgs) {
+            // 跳过隐藏的图片
+            if (img.offsetParent === null || 
+                img.style.display === 'none' || 
+                img.style.visibility === 'hidden') {
+              continue;
+            }
+            
+            const src = img.src || '';
+            // 只处理未处理过的图片
+            if (!imgSrcs.has(src) && src) {
+              imgSrcs.add(src);
+              uniqueImgs.push(img);
+            }
+          }
+          
+          this.log(\`找到 \${uniqueImgs.length} 个唯一验证码图片\`);
+          
+          for (const img of uniqueImgs) {
+            const text = await this.recognizeCaptcha(img);
+            if (text) {
+              if (this.options.autoFill) {
+                this.fillCaptcha(text);
+              }
+              
+              if (this.options.copyToClipboard) {
+                this.copyTextToClipboard(text);
+              }
+              
+              return text;
+            }
+          }
+          
+          return null;
+        }
+        
+        // 添加验证码识别按钮
+        addCaptchaButton() {
+          const button = document.createElement("div");
+          button.innerText = "识别验证码";
+          button.style.position = "fixed";
+          button.style.right = "10px";
+          button.style.bottom = "100px";
+          button.style.backgroundColor = "rgba(0, 119, 255, 0.8)";
+          button.style.color = "white";
+          button.style.padding = "8px 12px";
+          button.style.borderRadius = "4px";
+          button.style.fontSize = "14px";
+          button.style.cursor = "pointer";
+          button.style.zIndex = "9999";
+          button.style.display = "none";
+          
+          button.addEventListener("click", () => {
+            this.findAndRecognize();
+          });
+          
+          // 双击显示/隐藏按钮
+          document.addEventListener("dblclick", () => {
+            button.style.display = button.style.display === "none" ? "block" : "none";
+          });
+          
+          document.body.appendChild(button);
+        }
+      }
+
+      // 页面加载完成后初始化验证码识别器
+      window._${prefix}_id77_captchaRecognizer = null;
+      function _${prefix}_id77_initCaptchaRecognizer() {
+        if (!window._${prefix}_id77_captchaRecognizer && ocrApiUrl) {
+          window._${prefix}_id77_captchaRecognizer = new _${prefix}_id77_CaptchaRecognizer();
+        }
+      }
+
+      // 等待页面加载完成
+      if (document.readyState === 'complete') {
+        _${prefix}_id77_initCaptchaRecognizer();
+      } else {
+        window.addEventListener('load', _${prefix}_id77_initCaptchaRecognizer);
+      }
+    })();
+  </script>`;
+  }
+  // 创建验证码识别器
+  let captchaScript = ocrApi ? createCaptchaRecognizer(ocrApi) : '';
 
   if (vx77) {
     html = html.replace(
@@ -1487,12 +2117,12 @@ try {
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
-      `${copyObject}${scriptDoms}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`
     );
   } else {
     html = html.replace(
       /(<\/head>|<script|<div)/i,
-      `${copyObject}${scriptDoms}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`
     );
   }
 
