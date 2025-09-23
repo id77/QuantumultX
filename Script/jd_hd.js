@@ -495,7 +495,7 @@ try {
             // 查找可能包含验证码的canvas元素
             const canvasElements = document.querySelectorAll('canvas');
             for (const canvas of canvasElements) {
-              if (canvas.width > 30 && canvas.width < 200 && 
+              if (canvas.width > 70 && canvas.width < 200 && 
                   canvas.height > 20 && canvas.height < 100) {
                 try {
                   // 尝试从canvas创建一个临时图片对象
@@ -515,7 +515,7 @@ try {
             const allImgs = document.querySelectorAll('img');
             for (const img of allImgs) {
               if (img.src && img.src.startsWith('blob:') && 
-                  img.width > 30 && img.width < 200 && 
+                  img.width > 70 && img.width < 200 && 
                   img.height > 20 && img.height < 100) {
                 captchaImgs.push(img);
                 this.log("找到blob URL验证码图片: " + img.src);
@@ -546,7 +546,7 @@ try {
             const allImgs = document.querySelectorAll("img");
             for (const img of allImgs) {
               // 验证码图片通常是小尺寸图片
-              if (img.width > 30 && img.width < 200 && 
+              if (img.width > 70 && img.width < 200 && 
                   img.height > 20 && img.height < 100) {
                 captchaImgs.push(img);
               }
