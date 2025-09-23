@@ -319,7 +319,8 @@ try {
               '.authcode img[id="authImage"]',
               'img[class="verification-img"]',
               'img[name="imgCaptcha"]',
-              'img[src*="code" i]'
+              'img[src*="code" i]',
+              'div[class*=captcha] img'
             ],
             inputSelectors: [
               "input[name*='captcha']",
@@ -336,7 +337,7 @@ try {
             autoRecognize: true,
             autoFill: true,
             copyToClipboard: true,
-            debug: false
+            debug: true
           }, options);
 
           this.captchaObserver = null;
@@ -362,40 +363,115 @@ try {
         setupObserver() {
           // 为避免频繁触发，增加一个节流控制
           let observerThrottle = false;
+          let pendingCheck = false;
+          
+          // 定义一个延迟检查函数
+          const delayedCheck = () => {
+            if (pendingCheck) return;
+            pendingCheck = true;
+            
+            // 延迟执行，确保DOM完全加载
+            setTimeout(() => {
+              try {
+                const captchaImgs = this.findCaptchaImages();
+                this.log("延迟检查找到" + captchaImgs.length + "个验证码图片");
+                if (captchaImgs.length > 0) {
+                  this.findAndRecognize();
+                }
+              } catch (e) {
+                this.log("延迟检查出错: " + e.message);
+              } finally {
+                pendingCheck = false;
+              }
+            }, 1000);
+          };
           
           this.captchaObserver = new MutationObserver((mutations) => {
+            this.log("DOM变化检测到");
             // 如果正在识别或节流中，不执行操作
             if (this.recognizing || observerThrottle) return;
             
+            let needsCheck = false;
+            this.log("开始检查验证码图片");
+            
             for (const mutation of mutations) {
-              if (mutation.type === "childList" || mutation.type === "attributes") {
-                const captchaImgs = this.findCaptchaImages();
-                if (captchaImgs.length > 0) {
-                  // 设置节流锁，防止短时间内多次触发
-                  observerThrottle = true;
+              // 检查是否有图片元素被添加或修改
+              if (mutation.type === "childList") {
+                // 检查添加的节点
+                for (const node of mutation.addedNodes) {
+                  // 如果添加的是图片元素
+                  if (node.nodeName === "IMG") {
+                    this.log("检测到新增IMG元素");
+                    needsCheck = true;
+                    break;
+                  }
                   
-                  // 延迟执行识别，给页面充分渲染时间
-                  setTimeout(() => {
-                    this.findAndRecognize();
-                    
-                    // 3秒后解除节流锁
-                    setTimeout(() => {
-                      observerThrottle = false;
-                    }, 3000);
-                  }, 500);
-                  
+                  // 检查添加节点内部是否包含img元素
+                  if (node.nodeType === 1) { // 元素节点
+                    const imgs = node.querySelectorAll('img');
+                    if (imgs.length > 0) {
+                      this.log("检测到新增节点中包含IMG元素");
+                      needsCheck = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              
+              // 检查是否有属性变化，特别是img的src属性
+              if (mutation.type === "attributes") {
+                if (mutation.target.nodeName === "IMG" && 
+                    (mutation.attributeName === "src" || 
+                     mutation.attributeName === "data-src")) {
+                  this.log("检测到IMG元素的" + mutation.attributeName + "属性变化");
+                  needsCheck = true;
                   break;
                 }
               }
+              
+              if (needsCheck) break;
+            }
+            
+            if (needsCheck) {
+              // 设置节流锁，防止短时间内多次触发
+              observerThrottle = true;
+              
+              // 延迟执行识别，给页面充分渲染时间
+              setTimeout(() => {
+                try {
+                  const captchaImgs = this.findCaptchaImages();
+                  this.log("检测到变化，找到" + captchaImgs.length + "个验证码图片");
+                  
+                  if (captchaImgs.length > 0) {
+                    // 再次延迟执行，确保图片加载完成
+                    setTimeout(() => {
+                      this.findAndRecognize();
+                    }, 300);
+                  }
+                } catch (e) {
+                  this.log("检查验证码图片出错: " + e.message);
+                } finally {
+                  // 5秒后解除节流锁
+                  setTimeout(() => {
+                    observerThrottle = false;
+                    // 尝试再次检查，以防图片是延迟加载的
+                    delayedCheck();
+                  }, 5000);
+                }
+              }, 800);
             }
           });
           
+          // 更广泛的监听配置
           this.captchaObserver.observe(document.body, {
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ["src"]
+            attributeFilter: ["src", "data-src", "style", "class"]
           });
+          
+          // 在页面加载完成后也执行一次检查
+          setTimeout(delayedCheck, 2000);
         }
         
         // 查找页面中的验证码图片
