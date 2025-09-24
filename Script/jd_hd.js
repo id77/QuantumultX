@@ -532,17 +532,25 @@ try {
           });
 
           // 递归绑定已有 Shadow DOM
+          // 使用更高效的Shadow DOM处理
+          const processedShadowRoots = new WeakSet();
+
           const bindShadow = (root) => {
-            root.querySelectorAll("*").forEach(el => {
-              if (el.shadowRoot) {
-                this.log("初始化绑定 Shadow DOM 监听");
+            // 避免重复处理同一个shadow root
+            if (!root || processedShadowRoots.has(root)) return;
+            
+            // 使用更高效的选择器查询，只查找可能包含shadowRoot的元素
+            const potentialShadowHosts = root.querySelectorAll('custom-element, [is], [shadow]');
+            potentialShadowHosts.forEach(el => {
+              if (el.shadowRoot && !processedShadowRoots.has(el.shadowRoot)) {
+                processedShadowRoots.add(el.shadowRoot);
                 this.captchaObserver.observe(el.shadowRoot, {
                   childList: true,
                   subtree: true,
                   attributes: true,
                   attributeFilter: ["src", "data-src"]
                 });
-                bindShadow(el.shadowRoot); // 递归
+                bindShadow(el.shadowRoot); // 递归处理子阴影根
               }
             });
           };
@@ -553,65 +561,53 @@ try {
         }
         
         // 查找页面中的验证码图片
+        // 优化查找逻辑，使用缓存和更高效的选择器
         findCaptchaImages(node) {
+          // 缓存最近一次的查询结果
+          if (this._cachedImgs && Date.now() - this._lastImgSearchTime < 777777) {
+            return this._cachedImgs;
+          }
+          
+          const rootNode = node || document;
           let captchaImgs = [];
-
-          if (node) {
-            // 如果指定了节点，则在该节点内查找
-            for (const selector of this.options.captchaSelectors) {
-              const imgs = node.querySelectorAll(selector);
-              if (imgs.length === 0 && node.shadowRoot) {
-                node.shadowRoot.querySelectorAll(selector)
-              }
-              if (imgs.length > 0) {
-                captchaImgs = [...captchaImgs, ...imgs];
-              }
-            }
-            return captchaImgs;
+          
+          // 使用更高效的优先级查找策略
+          // 1. 首先尝试自定义规则
+          if (this.options.ocrRule?.captchaSelector) {
+            captchaImgs = Array.from(rootNode.querySelectorAll(this.options.ocrRule.captchaSelector));
           }
           
-          // 标准查找流程
+          // 2. 如果没找到，使用合并后的选择器一次性查找
           if (captchaImgs.length === 0) {
-            if (this.options.ocrRule?.captchaSelector) {
-              // 应用自定义验证码规则
-              const imgs = document.querySelectorAll(this.options.ocrRule.captchaSelector);
-              if (imgs.length > 0) {
-                captchaImgs = [...captchaImgs, ...imgs];
-              }
-            } else {
-              for (const selector of this.options.captchaSelectors) {
-                const imgs = document.querySelectorAll(selector);
-                if (imgs.length > 0) {
-                  captchaImgs = [...captchaImgs, ...imgs];
-                }
-              }
-            }
+            const allSelectors = this.options.captchaSelectors.join(', ');
+            captchaImgs = Array.from(rootNode.querySelectorAll(allSelectors));
           }
           
-          // 基于图片尺寸的启发式查找
+          // 3. 根据尺寸的启发式查找作为最后的备选方案
           if (captchaImgs.length === 0) {
-            const allImgs = document.querySelectorAll("img");
-            for (const img of allImgs) {
-              // 验证码图片通常是小尺寸图片
-              if (img.width > 70 && img.width < 200 && 
-                  img.height > 20 && img.height < 100) {
-                captchaImgs.push(img);
-              }
-            }
+            const allImgs = rootNode.querySelectorAll("img");
+            captchaImgs = Array.from(allImgs).filter(img => 
+              img.width > 70 && img.width < 200 && img.height > 20 && img.height < 100
+            );
           }
           
-          // 过滤掉无效图片
+          // 高效过滤隐藏和未加载的图片
           captchaImgs = captchaImgs.filter(img => {
-            // 检查图片是否可见
-            const isVisible = !(img.offsetParent === null || 
-                              img.style.display === 'none' || 
-                              img.style.visibility === 'hidden');
+            if (!img.isConnected || !img.src) return false;
             
-            // 检查图片是否加载完成
-            const isLoaded = img.complete && img.naturalWidth !== 0;
+            // 使用 CSS 计算值进行可见性检查
+            const style = window.getComputedStyle(img);
+            const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && 
+                              img.offsetParent !== null;
             
-            return isVisible && (isLoaded || img.src.startsWith('blob:') || img.src.startsWith('data:'));
+            return isVisible && (img.complete || img.src.startsWith('blob:') || img.src.startsWith('data:'));
           });
+          
+          // 缓存结果
+          if (captchaImgs.length > 0) {
+            this._cachedImgs = captchaImgs;
+            this._lastImgSearchTime = Date.now();
+          }
           
           return captchaImgs;
         }
@@ -620,6 +616,12 @@ try {
         findCaptchaInputs(captchaImgs) {
           let inputs = [];
           let roots = [];
+
+          // 缓存最近一次的查询结果
+          if (this._cachedInputs && Date.now() - this._lastInputSearchTime < 777777) {
+            return this._cachedInputs;
+          }
+
           if (captchaImgs && captchaImgs.length > 0) {
             // 获取验证码图片附近的输入框
             for (const img of captchaImgs) {
@@ -687,6 +689,12 @@ try {
                 }
               }
             }
+          }
+
+           // 缓存结果
+          if (inputs.length > 0) {
+            this._cachedInputs = inputs;
+            this._lastInputSearchTime = Date.now();
           }
           
           return inputs;
