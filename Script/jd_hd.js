@@ -379,6 +379,18 @@ try {
           
           this.addCaptchaButton();
           this.log("验证码识别器已初始化");
+          
+          // 添加页面卸载事件清理
+          window.addEventListener('beforeunload', () => this.cleanup());
+        }
+        
+        // 清理资源
+        cleanup() {       
+          // 断开观察器
+          if (this.captchaObserver) {
+            this.captchaObserver.disconnect();
+            this.captchaObserver = null;
+          }
         }
         
         log(message) {
@@ -505,6 +517,45 @@ try {
                   }
                   this.log("检测到变化，找到" + captchaImgs.length + "个验证码图片");
                   if (captchaImgs.length > 0) {
+                    // 找到验证码图片后，重新设置观察器，只监听这些图片
+                    this._cachedImgs = captchaImgs;
+                    this._lastImgSearchTime = Date.now();
+                    
+                    // 如果之前已经有全局监视器，先保存它的引用，然后断开连接
+                    const oldGlobalObserver = this.captchaObserver;
+                    oldGlobalObserver.disconnect();
+                    
+                    // 创建新的监听器，只监听验证码图片
+                    const targetCallback = (mutations) => {
+                      this.log("验证码图片元素发生变化");
+                      if (this.recognizing) return;
+                      
+                      setTimeout(() => {
+                        this.findAndRecognize(this._cachedImgs);
+                      }, 300);
+                    };
+                    
+                    this.captchaObserver = new MutationObserver(targetCallback);
+                    
+                    // 为每个验证码图片设置监听
+                    captchaImgs.forEach(img => {
+                      // 监听图片属性变化
+                      this.captchaObserver.observe(img, {
+                        attributes: true,
+                        attributeFilter: ["src", "data-src"]
+                      });
+                      
+                      // 监听父元素的子节点变化，以防图片被替换
+                      if (img.parentElement) {
+                        this.captchaObserver.observe(img.parentElement, {
+                          childList: true
+                        });
+                      }
+                    });
+                    
+                    this.log("已切换为仅监听" + captchaImgs.length + "个验证码图片元素");
+                    
+                    // 首次识别
                     setTimeout(() => {
                       this.findAndRecognize(captchaImgs);
                     }, 300);
