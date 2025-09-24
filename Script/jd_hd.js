@@ -564,10 +564,10 @@ try {
                 } catch (e) {
                   this.log("检查验证码图片出错: " + e.message);
                 } finally {
-                  setTimeout(() => {
-                    observerThrottle = false;
-                    delayedCheck(nodes);
-                  }, 5000);
+                  // setTimeout(() => {
+                  //   observerThrottle = false;
+                  //   delayedCheck(nodes);
+                  // }, 5000);
                 }
               }, 800);
             }
@@ -609,7 +609,7 @@ try {
           bindShadow(document);
 
           // 页面初次延迟检查
-          setTimeout(delayedCheck, 2000);
+          // setTimeout(delayedCheck, 2000);
         }
         
         // 查找页面中的验证码图片
