@@ -409,6 +409,7 @@ try {
             pendingCheck = true;
 
             setTimeout(() => {
+              if (this.recognizing && this.lastRecognized) return;
               try {
                 
                 let captchaImgs = this.findCaptchaImages();
@@ -565,10 +566,7 @@ try {
                 } finally {
                   setTimeout(() => {
                     observerThrottle = false;
-                    // 添加检查，避免重复识别
-                    if (this.recognizing === false && this.lastRecognized === null) {
-                      delayedCheck(nodes);
-                    }
+                    delayedCheck(nodes);
                   }, 5000);
                 }
               }, 800);
@@ -1082,6 +1080,7 @@ try {
         
         // 查找并识别验证码
         async findAndRecognize(captchaImgs) {
+          this.lastRecognized = null;
           // 如果正在识别过程中，直接返回，避免重复操作
           if (this.recognizing) {
             this.log("正在识别中，跳过此次调用");
