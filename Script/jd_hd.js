@@ -392,13 +392,21 @@ try {
           let observerThrottle = false;
           let pendingCheck = false;
 
-          const delayedCheck = () => {
+          const delayedCheck = (nodes = []) => {
             if (pendingCheck) return;
             pendingCheck = true;
 
             setTimeout(() => {
               try {
-                const captchaImgs = this.findCaptchaImages();
+                
+                let captchaImgs = this.findCaptchaImages();
+
+                if (captchaImgs.length === 0 && nodes.length > 0) {
+                  for (const node of nodes) {
+                    const imgs = this.findCaptchaImages(node);
+                    captchaImgs = [...captchaImgs, ...imgs];
+                  }
+                }
                 this.log("延迟检查找到" + captchaImgs.length + "个验证码图片");
                 if (captchaImgs.length > 0) {
                   this.findAndRecognize(captchaImgs);
@@ -425,7 +433,7 @@ try {
                   if (node.nodeName === "IMG") {
                     this.log("检测到新增IMG元素");
                     needsCheck = true;
-                    nodes.push(mutation.target);
+                    nodes.push(mutation.target.getRootNode());
                     break;
                   }
 
@@ -434,7 +442,7 @@ try {
                     if (imgs.length > 0) {
                       this.log("检测到新增节点中包含IMG元素");
                       needsCheck = true;
-                      nodes.push(mutation.target);
+                      nodes.push(mutation.target.getRootNode());
                       break;
                     }
                   }
@@ -473,7 +481,7 @@ try {
                     mutation.attributeName === "data-src")) {
                   this.log("检测到IMG元素的" + mutation.attributeName + "属性变化");
                   needsCheck = true;
-                  nodes.push(mutation.target);
+                  nodes.push(mutation.target.getRootNode());
                   break;
                 }
               }
@@ -506,7 +514,7 @@ try {
                 } finally {
                   setTimeout(() => {
                     observerThrottle = false;
-                    delayedCheck();
+                    delayedCheck(nodes);
                   }, 5000);
                 }
               }, 800);
