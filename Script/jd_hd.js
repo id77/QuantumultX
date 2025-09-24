@@ -565,7 +565,10 @@ try {
                 } finally {
                   setTimeout(() => {
                     observerThrottle = false;
-                    delayedCheck(nodes);
+                    // 添加检查，避免重复识别
+                    if (this.recognizing === false && this.lastRecognized === null) {
+                      delayedCheck(nodes);
+                    }
                   }, 5000);
                 }
               }, 800);
