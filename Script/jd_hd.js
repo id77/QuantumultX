@@ -614,89 +614,64 @@ try {
         
         // 查找验证码输入框
         findCaptchaInputs(captchaImgs) {
-          let inputs = [];
-          let roots = [];
-
-          // 缓存最近一次的查询结果
+          // 使用缓存
           if (this._cachedInputs && Date.now() - this._lastInputSearchTime < 777777) {
             return this._cachedInputs;
           }
 
-          if (captchaImgs && captchaImgs.length > 0) {
-            // 获取验证码图片附近的输入框
-            for (const img of captchaImgs) {
-              roots.push(img.getRootNode());
-            }
-          }
+          let inputs = [];
+          const roots = captchaImgs?.map(img => img.getRootNode()) || [];
 
-          if (this.options.ocrRule?.inputSelector) {
-            // 应用自定义验证码规则
-            const foundInputs = document.querySelectorAll(this.options.ocrRule.inputSelector);
+          // 选择器集合：优先自定义规则，否则使用默认 inputSelectors
+          const selectors = this.options.ocrRule?.inputSelector
+            ? [this.options.ocrRule.inputSelector]
+            : this.options.inputSelectors;
 
-            if (foundInputs.length === 0 && roots.length > 0) {
-              for (const root of roots) {
-                const imgs = root.querySelectorAll(this.options.ocrRule.inputSelector);
-                if (imgs.length > 0) {
-                  inputs = [...inputs, ...imgs];
-                }
+          const allSelectors = selectors.join(', ');
+
+          // 工具函数：在 document + 所有 ShadowRoot 中查询
+          const queryAllInRoots = (selector) => {
+            let results = Array.from(document.querySelectorAll(selector));
+            for (const root of roots) {
+              if (root instanceof ShadowRoot) {
+                results.push(...root.querySelectorAll(selector));
               }
             }
-            if (foundInputs.length > 0) {
-              inputs = [...inputs, ...foundInputs];
-            }
-          } else {
-            for (const selector of this.options.inputSelectors) {
-              const foundInputs = document.querySelectorAll(selector);
+            return results;
+          };
 
-              if (foundInputs.length === 0 && roots.length > 0) {
-                for (const root of roots) {
-                  const imgs = root.querySelectorAll(selector);
-                  if (imgs.length > 0) {
-                    inputs = [...inputs, ...imgs];
-                  }
-                }
-              }
-              if (foundInputs.length > 0) {
-                inputs = [...inputs, ...foundInputs];
-              }
-            }
-          }
-          
-          // 如果未找到输入框，查找可能的相近输入框
+          // 先尝试直接查询
+          inputs.push(...queryAllInRoots(allSelectors));
+
+          // 如果没找到，尝试查找图片附近的输入框
           if (inputs.length === 0) {
-            const captchaImgs = this.findCaptchaImages();
-            if (captchaImgs.length > 0) {
-              // 获取验证码图片附近的输入框
-              for (const img of captchaImgs) {
-                const parent = img.parentElement;
-                const grandParent = parent?.parentElement;
-                
-                // 检查同级元素
-                const siblings = parent?.children || [];
-                for (const sibling of siblings) {
-                  if (sibling.tagName === "INPUT") {
-                    inputs.push(sibling);
-                  }
+            const fallbackImgs = captchaImgs?.length ? captchaImgs : this.findCaptchaImages();
+            for (const img of fallbackImgs) {
+              const parent = img.parentElement;
+              const grandParent = parent?.parentElement;
+
+              // 父级同级元素中的 INPUT
+              if (parent) {
+                for (const sibling of parent.children) {
+                  if (sibling.tagName === "INPUT") inputs.push(sibling);
                 }
-                
-                // 检查父级同级元素
-                const parentSiblings = grandParent?.children || [];
-                for (const sibling of parentSiblings) {
-                  const siblingInputs = sibling.querySelectorAll("input");
-                  if (siblingInputs.length > 0) {
-                    inputs = [...inputs, ...siblingInputs];
-                  }
+              }
+
+              // 父级的同级元素下的 INPUT
+              if (grandParent) {
+                for (const sibling of grandParent.children) {
+                  inputs.push(...sibling.querySelectorAll("input"));
                 }
               }
             }
           }
 
-           // 缓存结果
+          // 缓存结果
           if (inputs.length > 0) {
             this._cachedInputs = inputs;
             this._lastInputSearchTime = Date.now();
           }
-          
+
           return inputs;
         }
         
