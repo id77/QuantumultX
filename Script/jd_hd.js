@@ -958,7 +958,7 @@ try {
                     break;
                   case "算术":
                     // 处理算术类型的逻辑
-                    data.charset_range = "零一二三四五六七八九十百千万加减乘除0123456789+-x/=";
+                    data.charset_range = "零一二三四五六七八九十百千万加减乘除0123456789+-*×xX/=";
                     data.type = "count";
                     break;
 
