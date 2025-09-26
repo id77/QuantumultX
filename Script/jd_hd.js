@@ -382,6 +382,16 @@ try {
           
           // 添加页面卸载事件清理
           window.addEventListener('beforeunload', () => this.cleanup());
+
+          // 超过2分钟，且没有验证码元素缓存，清理监听
+          setInterval(() => {
+            if (!this.captchaObserver) return;
+            if (this._cachedImgs?.length > 0) return;
+            if (Date.now() - (this._lastImgSearchTime || 0) > 120000) {
+              this.log("超过2分钟没有检测到验证码图片，清理监听器");
+              this.cleanup();
+            }
+          }, 60000);
         }
         
         // 清理资源
@@ -1149,7 +1159,7 @@ try {
           button.style.fontSize = "14px";
           button.style.cursor = "pointer";
           button.style.zIndex = "9999";
-          button.style.display = "none";
+          button.style.display = _${prefix}_id77_needHideSwitch;
           
           button.addEventListener("click", () => {
             this.findAndRecognize();
