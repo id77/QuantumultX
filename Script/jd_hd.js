@@ -372,13 +372,14 @@ try {
           this.recognizing = false;
           this.lastRecognized = null;
           
+          this.addCaptchaButton();
+          this.log("验证码识别器已初始化");
+          
           if (this.options.autoRecognize) {
             this.setupObserver();
             this.findAndRecognize();
           }
           
-          this.addCaptchaButton();
-          this.log("验证码识别器已初始化");
           
           // 添加页面卸载事件清理
           window.addEventListener('beforeunload', () => this.cleanup());
