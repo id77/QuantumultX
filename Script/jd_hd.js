@@ -371,10 +371,12 @@ try {
           this.captchaObserver = null;
           this.recognizing = false;
           this.lastRecognized = null;
+          this._lastRecognizedText = null; // 最后识别的文本，用于手动复制
+          this._hasInputField = false; // 是否找到了输入框
           
           this.addCaptchaButton();
           this.log("验证码识别器已初始化");
-          
+
           if (this.options.autoRecognize) {
             this.setupObserver();
             this.findAndRecognize();
@@ -1148,6 +1150,12 @@ try {
           const inputs = this.findCaptchaInputs(captchaImgs);
           let filled = false;
           
+          // 如果没有找到输入框，直接返回false
+          if (!inputs || inputs.length === 0) {
+            this.log("未找到验证码输入框");
+            return false;
+          }
+          
           for (const input of inputs) {
             input.value = text;
             input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1162,20 +1170,89 @@ try {
         // 复制到剪贴板
         copyTextToClipboard(text) {
           try {
-            const input = document.createElement("input");
-            input.style.position = "fixed";
-            input.style.opacity = 0;
-            input.value = text;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand("copy");
-            document.body.removeChild(input);
-            this.log("已复制到剪贴板: " + text);
-            return true;
+            // 尝试使用现代API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text)
+                .then(() => this.log("已使用现代API复制到剪贴板: " + text))
+                .catch(err => {
+                  this.log("现代API复制失败，尝试传统方法: " + err);
+                  this.copyWithFallback(text);
+                });
+              return true;
+            }
+            
+            // 回退到传统方法
+            return this.copyWithFallback(text);
           } catch (error) {
             this.log("复制到剪贴板失败: " + error.message);
             return false;
           }
+        }
+        
+        // 传统复制方法作为备选
+        copyWithFallback(text) {
+          try {
+            // 创建一个临时输入元素
+            const input = document.createElement("textarea"); // 使用textarea更可靠
+            input.style.position = "fixed";
+            input.style.left = "-9999px"; // 放到屏幕外
+            input.style.top = "0";
+            input.value = text;
+            
+            // 添加到DOM
+            document.body.appendChild(input);
+            
+            // 确保元素可见并选中
+            input.setAttribute("readonly", "");
+            input.focus();
+            input.select();
+            input.setSelectionRange(0, text.length); // 兼容移动设备
+            
+            // 执行复制
+            const successful = document.execCommand("copy");
+            
+            // 清理
+            document.body.removeChild(input);
+            
+            if (successful) {
+              this.log("已通过传统方法复制到剪贴板: " + text);
+              // 显示一个临时的复制成功提示
+              this.showCopyNotification(text);
+              return true;
+            } else {
+              this.log("传统复制方法失败");
+              return false;
+            }
+          } catch (err) {
+            this.log("复制回退方法失败: " + err.message);
+            return false;
+          }
+        }
+        
+        // 显示复制成功的通知
+        showCopyNotification(text) {
+          const notification = document.createElement("div");
+          notification.textContent = "验证码已复制: " + text;
+          notification.style.position = "fixed";
+          notification.style.bottom = "150px";
+          notification.style.right = "10px";
+          notification.style.padding = "10px 15px";
+          notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+          notification.style.color = "white";
+          notification.style.borderRadius = "4px";
+          notification.style.zIndex = "100000";
+          notification.style.fontSize = "14px";
+          notification.style.transition = "opacity 0.3s";
+          
+          document.body.appendChild(notification);
+          
+          // 3秒后淡出并移除
+          setTimeout(() => {
+            notification.style.opacity = "0";
+            setTimeout(() => {
+              document.body.removeChild(notification);
+            }, 300);
+          }, 3000);
         }
         
         // 查找并识别验证码
@@ -1222,18 +1299,28 @@ try {
           
           // 确保验证码按钮可见（如果找到验证码）
           if (uniqueImgs.length > 0 && this._captchaButton) {
-            this._captchaButton.style.display = "block";
+            this._captchaButton.style.display = "flex";
           }
           
           for (const img of uniqueImgs) {
             const text = await this.recognizeCaptcha(img);
             if (text) {
+              let inputsFilled = false;
+              
               if (this.options.autoFill) {
-                this.fillCaptcha(text, captchaImgs);
+                // 尝试填充到输入框
+                inputsFilled = this.fillCaptcha(text, captchaImgs);
               }
               
-              if (this.options.copyToClipboard) {
-                this.copyTextToClipboard(text);
+              // 保存识别结果，但不自动复制
+              // 记录是否有输入框，供复制按钮使用
+              this._lastRecognizedText = text;
+              this._hasInputField = inputsFilled;
+              
+              // 如果没有找到输入框，显示复制按钮
+              if (!inputsFilled && this._copyButton) {
+                this._copyButton.style.display = "block";
+                this.log("未找到验证码输入框，可点击'复制验证码'按钮复制结果");
               }
               
               return text;
@@ -1245,36 +1332,78 @@ try {
         
         // 添加验证码识别按钮
         addCaptchaButton() {
-          // 创建主按钮
-          const button = document.createElement("div");
-          button.id = "ocr_btn_" + Math.random().toString(36).substr(2, 9);
-          button.innerText = "识别验证码";
-          button.style.position = "fixed";
-          button.style.right = "10px";
-          button.style.bottom = "100px";
-          button.style.backgroundColor = "rgba(0, 119, 255, 0.8)";
-          button.style.color = "white";
-          button.style.padding = "8px 12px";
-          button.style.borderRadius = "4px";
-          button.style.fontSize = "14px";
-          button.style.cursor = "pointer";
-          button.style.zIndex = "9999";
-          button.style.display = _${prefix}_id77_needHideSwitch;
+          // 创建按钮容器，用于统一管理和定位
+          const container = document.createElement("div");
+          container.style.position = "fixed";
+          container.style.right = "10px";
+          container.style.bottom = "100px";
+          container.style.display = "flex";
+          container.style.flexDirection = "column";
+          container.style.gap = "10px";
+          container.style.zIndex = "9999";
           
-          button.addEventListener("click", () => {
-            this.findAndRecognize();
+          // 创建识别按钮
+          const recognizeButton = document.createElement("div");
+          recognizeButton.id = "ocr_recognize_btn_" + Math.random().toString(36).substr(2, 9);
+          recognizeButton.innerText = "识别验证码";
+          recognizeButton.style.backgroundColor = "rgba(0, 119, 255, 0.8)";
+          recognizeButton.style.color = "white";
+          recognizeButton.style.padding = "8px 12px";
+          recognizeButton.style.borderRadius = "4px";
+          recognizeButton.style.fontSize = "14px";
+          recognizeButton.style.cursor = "pointer";
+          recognizeButton.style.textAlign = "center";
+          recognizeButton.style.display = _${prefix}_id77_needHideSwitch;
+          
+          // 创建复制按钮
+          const copyButton = document.createElement("div");
+          copyButton.id = "ocr_copy_btn_" + Math.random().toString(36).substr(2, 9);
+          copyButton.innerText = "复制验证码";
+          copyButton.style.backgroundColor = "rgba(76, 175, 80, 0.8)";
+          copyButton.style.color = "white";
+          copyButton.style.padding = "8px 12px";
+          copyButton.style.borderRadius = "4px";
+          copyButton.style.fontSize = "14px";
+          copyButton.style.cursor = "pointer";
+          copyButton.style.textAlign = "center";
+          copyButton.style.display = "none"; // 初始隐藏，有结果时才显示
+          
+          // 识别按钮点击事件
+          recognizeButton.addEventListener("click", async () => {
+            const result = await this.findAndRecognize();
+            if (result) {
+              // 有识别结果且没有输入框时，显示复制按钮
+              if (!this._hasInputField) {
+                copyButton.style.display = "block";
+              }
+            }
           });
           
-          // 双击显示/隐藏按钮
+          // 复制按钮点击事件
+          copyButton.addEventListener("click", () => {
+            if (this._lastRecognizedText) {
+              this.copyTextToClipboard(this._lastRecognizedText);
+              this.log("手动点击复制验证码: " + this._lastRecognizedText);
+            } else {
+              this.log("没有可复制的验证码结果");
+            }
+          });
+          
+          // 双击显示/隐藏按钮组
           document.addEventListener("dblclick", () => {
-            button.style.display = button.style.display === "none" ? "block" : "none";
+            const currentDisplay = container.style.display;
+            container.style.display = currentDisplay === "none" ? "flex" : "none";
           });
           
-          document.body.appendChild(button);
-          this.captchaButton = button;
+          // 添加按钮到容器
+          container.appendChild(recognizeButton);
+          container.appendChild(copyButton);
+          document.body.appendChild(container);
           
           // 保存引用以便后续更新位置
-          this._captchaButton = button;
+          this._captchaButton = container;
+          this._recognizeButton = recognizeButton;
+          this._copyButton = copyButton;
         }
         
         // 更新验证码按钮位置（放在验证码附近）
@@ -1310,6 +1439,11 @@ try {
           if (rect.right + 150 > window.innerWidth) {
             this._captchaButton.style.left = rect.left + "px";
             this._captchaButton.style.top = (rect.bottom + window.scrollY + 10) + "px";
+          }
+          
+          // 如果有识别结果但没有输入框，显示复制按钮
+          if (this._lastRecognizedText && this._copyButton && !this._hasInputField) {
+            this._copyButton.style.display = "block";
           }
         }
       }
