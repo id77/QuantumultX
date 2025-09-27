@@ -383,6 +383,9 @@ try {
           // 添加页面卸载事件清理
           window.addEventListener('beforeunload', () => this.cleanup());
 
+          // 监听单页面应用路由变化
+          this.setupRouteObserver();
+
           // 超过2分钟，且没有验证码元素缓存，清理监听
           setInterval(() => {
             if (!this.captchaObserver) return;
@@ -392,15 +395,95 @@ try {
               this.cleanup();
             }
           }, 60000);
+
+          
+        }
+        
+        // 监听单页面应用的路由变化
+        setupRouteObserver() {
+          this.log("设置路由变化监听");
+          
+          // 记录当前URL，用于比较变化
+          this._lastUrl = window.location.href;
+          
+          // 方法1: 监听popstate事件（浏览器前进/后退按钮触发）
+          window.addEventListener('popstate', () => {
+            this.onRouteChange();
+          });
+          
+          // 方法2: 监听hashchange事件（hash路由模式）
+          window.addEventListener('hashchange', () => {
+            this.onRouteChange();
+          });
+          
+          // 方法3: 拦截history API（history路由模式）
+          const originalPushState = history.pushState;
+          const originalReplaceState = history.replaceState;
+          const self = this;
+          
+          history.pushState = function() {
+            originalPushState.apply(this, arguments);
+            self.onRouteChange();
+          };
+          
+          history.replaceState = function() {
+            originalReplaceState.apply(this, arguments);
+            self.onRouteChange();
+          };
+          
+          // 额外检测URL变化的轮询，以防其他方法失效
+          this._urlCheckInterval = setInterval(() => {
+            if (window.location.href !== this._lastUrl) {
+              this._lastUrl = window.location.href;
+              this.onRouteChange();
+            }
+          }, 1000);
+        }
+        
+        // 路由变化处理
+        onRouteChange() {
+          this.log("检测到路由变化，重新扫描验证码");
+          this._lastUrl = window.location.href;
+          
+          // 给DOM一些时间来更新
+          setTimeout(() => {
+            // 清除旧缓存
+            this._cachedImgs = null;
+            this._cachedInputs = null;
+            
+            // 重新设置DOM观察器，以确保能捕获新路由下的验证码元素
+            this.setupObserver();
+            
+            // 等待元素加载后再识别验证码
+            setTimeout(() => {
+              // 重新扫描并识别验证码
+              this.findAndRecognize();
+            }, 300);
+          }, 500);
         }
         
         // 清理资源
         cleanup() {       
-          // 断开观察器
+          // 断开DOM观察器
           if (this.captchaObserver) {
             this.captchaObserver.disconnect();
             this.captchaObserver = null;
           }
+          
+          // 清除URL检查间隔
+          if (this._urlCheckInterval) {
+            clearInterval(this._urlCheckInterval);
+            this._urlCheckInterval = null;
+          }
+          
+          // 清除缓存数据
+          this._cachedImgs = null;
+          this._cachedInputs = null;
+          this._lastImgSearchTime = null;
+          this._lastInputSearchTime = null;
+          
+          // 重置识别状态
+          this.recognizing = false;
         }
         
         log(message) {
@@ -411,6 +494,12 @@ try {
         
         // 设置DOM观察器，监视验证码图片变化（支持 Shadow DOM）
         setupObserver() {
+          // 如果已经存在观察器，先断开连接
+          if (this.captchaObserver) {
+            this.captchaObserver.disconnect();
+            this.captchaObserver = null;
+          }
+          
           let observerThrottle = false;
           let pendingCheck = false;
 
@@ -1105,6 +1194,9 @@ try {
             return null;
           }
           
+          // 更新验证码按钮位置，让它靠近验证码图片
+          this.updateCaptchaButtonPosition(captchaImgs);
+          
           // 保存图片src，用于避免重复识别相同图片
           const imgSrcs = new Set();
           const uniqueImgs = [];
@@ -1127,6 +1219,11 @@ try {
           
           this.log(\`找到 \${uniqueImgs.length} 个唯一验证码图片\`);
           
+          // 确保验证码按钮可见（如果找到验证码）
+          if (uniqueImgs.length > 0 && this._captchaButton) {
+            this._captchaButton.style.display = "block";
+          }
+          
           for (const img of uniqueImgs) {
             const text = await this.recognizeCaptcha(img);
             if (text) {
@@ -1147,7 +1244,9 @@ try {
         
         // 添加验证码识别按钮
         addCaptchaButton() {
+          // 创建主按钮
           const button = document.createElement("div");
+          button.id = "ocr_btn_" + Math.random().toString(36).substr(2, 9);
           button.innerText = "识别验证码";
           button.style.position = "fixed";
           button.style.right = "10px";
@@ -1171,6 +1270,46 @@ try {
           });
           
           document.body.appendChild(button);
+          this.captchaButton = button;
+          
+          // 保存引用以便后续更新位置
+          this._captchaButton = button;
+        }
+        
+        // 更新验证码按钮位置（放在验证码附近）
+        updateCaptchaButtonPosition(captchaImgs) {
+          if (!this._captchaButton || !captchaImgs || captchaImgs.length === 0) return;
+          
+          // 使用第一张验证码图片作为参考
+          const img = captchaImgs[0];
+          if (!img || !img.getBoundingClientRect) return;
+          
+          const rect = img.getBoundingClientRect();
+          
+          // 如果图片不在视口内，则使用默认位置
+          if (rect.top < 0 || rect.bottom > window.innerHeight || 
+              rect.left < 0 || rect.right > window.innerWidth) {
+            // 恢复默认位置
+            this._captchaButton.style.right = "10px";
+            this._captchaButton.style.bottom = "100px";
+            this._captchaButton.style.left = "";
+            this._captchaButton.style.top = "";
+            return;
+          }
+          
+          // 根据图片位置放置按钮
+          this._captchaButton.style.right = "";
+          this._captchaButton.style.bottom = "";
+          
+          // 默认放在图片右侧
+          this._captchaButton.style.left = (rect.right + 10) + "px";
+          this._captchaButton.style.top = (rect.top + window.scrollY) + "px";
+          
+          // 如果图片靠近右边缘，则放在图片下方
+          if (rect.right + 150 > window.innerWidth) {
+            this._captchaButton.style.left = rect.left + "px";
+            this._captchaButton.style.top = (rect.bottom + window.scrollY + 10) + "px";
+          }
         }
       }
 
