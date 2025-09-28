@@ -240,8 +240,8 @@
       "name": "闲鱼",
       "keys": [
         "id77_goofishCookieId",
-        "id77_goofishUserName",
-        "id77_goofishPassword"
+        "id77_goofishLoginUserName",
+        "id77_goofishLoginPassword"
       ],
       "settings": [
         {

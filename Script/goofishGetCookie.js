@@ -1,4 +1,4 @@
-const $ = new Env('通用获取 Cookie');
+const $ = new Env('闲鱼抓取Cookie');
 
 const goofishCookieId = $.getData('id77_goofishCookieId');
 const goofishLoginUserName = $.getData('id77_goofishLoginUserName');
@@ -7,30 +7,29 @@ const goofishLoginPassword = $.getData('id77_goofishLoginPassword');
 const Cookie = `${$request.headers['Cookie'] || $request.headers['cookie']};`;
 
 console.log(`获取 Cookie 成功: ${Cookie}`);
-$.msg('获取 Cookie 成功', '', Cookie, {
-  'update-pasteboard': Cookie,
-  openUrl: 'quantumult-x://',
-});
 
 !(async () => {
   if (!goofishCookieId) {
-    console.log('未设置 goofishCookieId, 取消推送');
+    $.msg = '未设置 goofishCookieId, 取消推送';
     return;
   }
   if (!goofishLoginUserName || !goofishLoginPassword) {
-    console.log(
-      '未设置 goofishLoginUserName 或 goofishLoginPassword, 取消推送'
-    );
+    $.msg = '未设置 goofishLoginUserName 或 goofishLoginPassword, 取消推送';
     return;
   }
 
   const token = await login();
   if (!token) {
-    console.log('登录失败, 取消推送');
+    $.msg = '登录失败, 取消推送';
     return;
   }
 
   await 推送Cookie();
+
+  $.msg($.name, '', $.msg, {
+    'update-pasteboard': Cookie,
+    openUrl: 'quantumult-x://',
+  });
 })()
   .catch((e) => $.logErr(e))
   .finally(() => $.done());
@@ -65,7 +64,7 @@ function login(params) {
 
       $.post(opts, (err, resp, data) => {
         if (err) {
-          console.log(`登录失败: ${err}`);
+          $.msg = `登录失败: ${err}`;
           resolve('');
           return;
         }
@@ -73,20 +72,20 @@ function login(params) {
         try {
           const result = JSON.parse(data);
           if (result.success === true) {
-            console.log(result.message || '登录成功');
+            $.msg = result.message || '登录成功';
             $.Authorization = `Bearer ${result.token}`;
             resolve(result.token);
           } else {
-            console.log(`登录失败: ${result.message || '未知错误'}`);
+            $.msg = `登录失败: ${result.message || '未知错误'}`;
             resolve('');
           }
         } catch (e) {
-          console.log(`登录失败: ${e}, 原始数据: ${data}`);
+          $.msg = `登录失败: ${e}, 原始数据: ${data}`;
           resolve('');
         }
       });
     } catch (e) {
-      console.log(`登录异常: ${e}`);
+      $.msg = `登录异常: ${e}`;
       resolve('');
     }
   });
@@ -125,7 +124,7 @@ function 推送Cookie(params) {
 
       $.post(opts, (err, resp, data) => {
         if (err) {
-          console.log(`推送Cookie失败: ${err}`);
+          $.msg = `推送Cookie失败: ${err}`;
           resolve('');
           return;
         }
@@ -133,15 +132,15 @@ function 推送Cookie(params) {
         try {
           const result = JSON.parse(data);
 
-          console.log(result.msg || '推送Cookie成功');
+          $.msg = result.msg || '推送Cookie成功';
           resolve(result);
         } catch (e) {
-          console.log(`推送Cookie失败: ${e}, 原始数据: ${data}`);
+          $.msg = `推送Cookie失败: ${e}, 原始数据: ${data}`;
           resolve('');
         }
       });
     } catch (e) {
-      console.log(`推送Cookie异常: ${e}`);
+      $.msg = `推送Cookie异常: ${e}`;
       resolve('');
     }
   });
