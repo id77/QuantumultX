@@ -252,14 +252,14 @@
           "desc": "cookieId/账号ID"
         },
         {
-          "id": "id77_goofishUserName",
+          "id": "id77_goofishLoginUserName",
           "name": "用户名",
           "val": "",
           "type": "text",
           "desc": "登录用户名"
         },
         {
-          "id": "id77_goofishPassword",
+          "id": "id77_goofishLoginPassword",
           "name": "密码",
           "val": "",
           "type": "text",

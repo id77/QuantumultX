@@ -10,29 +10,30 @@ console.log(`获取 Cookie 成功: ${Cookie}`);
 
 !(async () => {
   if (!goofishCookieId) {
-    $.msg = '未设置 goofishCookieId, 取消推送';
+    $.msgStr = '未设置 goofishCookieId, 取消推送';
     return;
   }
   if (!goofishLoginUserName || !goofishLoginPassword) {
-    $.msg = '未设置 goofishLoginUserName 或 goofishLoginPassword, 取消推送';
+    $.msgStr = '未设置 goofishLoginUserName 或 goofishLoginPassword, 取消推送';
     return;
   }
 
   const token = await login();
   if (!token) {
-    $.msg = '登录失败, 取消推送';
+    $.msgStr = '登录失败, 取消推送';
     return;
   }
 
   await 推送Cookie();
-
-  $.msg($.name, '', $.msg, {
-    'update-pasteboard': Cookie,
-    openUrl: 'quantumult-x://',
-  });
 })()
   .catch((e) => $.logErr(e))
-  .finally(() => $.done());
+  .finally(() => {
+    $.msg($.name, '', $.msgStr, {
+      'update-pasteboard': Cookie,
+      openUrl: 'quantumult-x://',
+    });
+    $.done();
+  });
 
 function login(params) {
   return new Promise((resolve, reject) => {
@@ -64,7 +65,7 @@ function login(params) {
 
       $.post(opts, (err, resp, data) => {
         if (err) {
-          $.msg = `登录失败: ${err}`;
+          $.msgStr = `登录失败: ${err}`;
           resolve('');
           return;
         }
@@ -72,20 +73,20 @@ function login(params) {
         try {
           const result = JSON.parse(data);
           if (result.success === true) {
-            $.msg = result.message || '登录成功';
+            $.msgStr = result.message || '登录成功';
             $.Authorization = `Bearer ${result.token}`;
             resolve(result.token);
           } else {
-            $.msg = `登录失败: ${result.message || '未知错误'}`;
+            $.msgStr = `登录失败: ${result.message || '未知错误'}`;
             resolve('');
           }
         } catch (e) {
-          $.msg = `登录失败: ${e}, 原始数据: ${data}`;
+          $.msgStr = `登录失败: ${e}, 原始数据: ${data}`;
           resolve('');
         }
       });
     } catch (e) {
-      $.msg = `登录异常: ${e}`;
+      $.msgStr = `登录异常: ${e}`;
       resolve('');
     }
   });
@@ -124,7 +125,7 @@ function 推送Cookie(params) {
 
       $.post(opts, (err, resp, data) => {
         if (err) {
-          $.msg = `推送Cookie失败: ${err}`;
+          $.msgStr = `推送Cookie失败: ${err}`;
           resolve('');
           return;
         }
@@ -132,15 +133,15 @@ function 推送Cookie(params) {
         try {
           const result = JSON.parse(data);
 
-          $.msg = result.msg || '推送Cookie成功';
+          $.msgStr = result.msg || '推送Cookie成功';
           resolve(result);
         } catch (e) {
-          $.msg = `推送Cookie失败: ${e}, 原始数据: ${data}`;
+          $.msgStr = `推送Cookie失败: ${e}, 原始数据: ${data}`;
           resolve('');
         }
       });
     } catch (e) {
-      $.msg = `推送Cookie异常: ${e}`;
+      $.msgStr = `推送Cookie异常: ${e}`;
       resolve('');
     }
   });
