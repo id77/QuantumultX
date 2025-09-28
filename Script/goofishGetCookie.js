@@ -1,5 +1,6 @@
 const $ = new Env('闲鱼抓取Cookie');
 
+const goofishDomain = $.getData('id77_goofishDomain');
 const goofishCookieId = $.getData('id77_goofishCookieId');
 const goofishLoginUserName = $.getData('id77_goofishLoginUserName');
 const goofishLoginPassword = $.getData('id77_goofishLoginPassword');
@@ -38,7 +39,7 @@ console.log(`获取 Cookie 成功: ${Cookie}`);
 function login(params) {
   return new Promise((resolve, reject) => {
     try {
-      const url = `http://pve.h.id77.win:3577/login`;
+      const url = `${goofishDomain}/login`;
       const method = `POST`;
       const headers = {
         Accept: `*/*`,
@@ -95,7 +96,7 @@ function login(params) {
 function 推送Cookie(params) {
   return new Promise((resolve, reject) => {
     try {
-      const url = `http://pve.h.id77.win:3577/cookies/${encodeURIComponent(
+      const url = `${goofishDomain}/cookies/${encodeURIComponent(
         goofishCookieId
       )}`;
       const method = `PUT`;
