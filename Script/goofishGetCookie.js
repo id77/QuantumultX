@@ -111,7 +111,7 @@ function 推送Cookie(params) {
         Accept: `*/*`,
       };
       const body = JSON.stringify({
-        id: goofishUserId,
+        id: goofishCookieId,
         value: Cookie,
       });
 
