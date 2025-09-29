@@ -335,7 +335,7 @@ try {
               '.yanzhengma img',
               'img[data-type="captcha"]',
               'img.verifyimg',
-              'img.captcha'
+              'img.captcha',
             ],
             inputSelectors: [
               "input[name*='captcha']",
@@ -373,9 +373,13 @@ try {
           this.lastRecognized = null;
           this._lastRecognizedText = null; // 最后识别的文本，用于手动复制
           this._hasInputField = false; // 是否找到了输入框
+          this._srcChangeTimeout = null; // src变化防抖超时器
           
           this.addCaptchaButton();
           this.log("验证码识别器已初始化");
+
+          // 设置图片点击事件监听
+          this.setupImageClickListener();
 
           if (this.options.autoRecognize) {
             this.setupObserver();
@@ -400,6 +404,194 @@ try {
           }, 60000);
 
           
+        }
+        
+        // 设置图片点击事件监听
+        setupImageClickListener() {
+          this.log("设置图片点击事件监听");
+          
+          // 存储被监听的图片和它们的原始src
+          this._monitoredImages = new Map();
+          this._clickedImage = null; // 当前被点击的图片
+          
+          // 使用事件委托监听所有图片点击
+          document.addEventListener('click', (event) => {
+            if (event.target.tagName === 'IMG') {
+              this.handleImageClick(event.target);
+            }
+          }, true); // 使用捕获阶段确保能监听到事件
+        }
+        
+        // 处理图片点击事件
+        handleImageClick(img) {
+          this.log("检测到图片点击: " + (img.src || "无src"));
+          
+          // 如果图片没有src，跳过
+          if (!img.src) return;
+          
+          // 检查是否是已缓存的验证码图片
+          const isCachedCaptcha = this._cachedImgs && this._cachedImgs.includes(img);
+          
+          if (isCachedCaptcha) {
+            this.log("点击的是已缓存的验证码图片，跳过监听避免重复识别");
+            // 记录被点击的图片，但不额外监听
+            this._clickedImage = img;
+            return;
+          }
+          
+          // 记录被点击的图片
+          this._clickedImage = img;
+          
+          // 开始监听该图片的src变化
+          this.startMonitoringImage(img);
+        }
+        
+        // 开始监听特定图片的src变化
+        startMonitoringImage(img) {
+          if (!img || this._monitoredImages.has(img)) return;
+          
+          const originalSrc = img.src;
+          this._monitoredImages.set(img, {
+            originalSrc: originalSrc,
+            lastSrc: originalSrc,
+            observer: null
+          });
+          
+          this.log("开始监听图片src变化: " + originalSrc);
+          
+          // 创建专门的观察器监听该图片的src属性变化
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.type === 'attributes' && 
+                  (mutation.attributeName === 'src' || mutation.attributeName === 'data-src')) {
+                this.handleImageSrcChange(img);
+              }
+            });
+          });
+          
+          // 监听图片的src属性变化
+          observer.observe(img, {
+            attributes: true,
+            attributeFilter: ['src', 'data-src']
+          });
+          
+          // 保存观察器引用
+          this._monitoredImages.get(img).observer = observer;
+          
+          // 定期检查src变化（作为备选方案）
+          const checkInterval = setInterval(() => {
+            if (!this._monitoredImages.has(img) || !img.isConnected) {
+              clearInterval(checkInterval);
+              return;
+            }
+            
+            const currentSrc = img.src;
+            const monitorData = this._monitoredImages.get(img);
+            
+            if (currentSrc !== monitorData.lastSrc) {
+              this.handleImageSrcChange(img);
+            }
+          }, 500);
+          
+          // 30秒后停止监听该图片（防止内存泄漏）
+          setTimeout(() => {
+            this.stopMonitoringImage(img);
+            clearInterval(checkInterval);
+          }, 30000);
+        }
+        
+        // 处理图片src变化
+        handleImageSrcChange(img) {
+          if (!this._monitoredImages.has(img)) return;
+          
+          const monitorData = this._monitoredImages.get(img);
+          const newSrc = img.src;
+          
+          // 如果src没有实际变化，跳过
+          if (newSrc === monitorData.lastSrc) return;
+          
+          this.log("检测到图片src变化: " + monitorData.lastSrc + " -> " + newSrc);
+          
+          // 更新记录的src
+          monitorData.lastSrc = newSrc;
+          
+          // 检查是否正在识别中，避免重复识别
+          if (this.recognizing) {
+            this.log("正在进行其他识别，跳过此次src变化识别");
+            return;
+          }
+          
+          // 如果这是被点击的图片，将其作为验证码图片处理
+          if (this._clickedImage === img) {
+            this.log("被点击的图片src已变化，将其识别为验证码图片");
+            
+            // 清除当前缓存，强制重新查找
+            this._cachedImgs = null;
+            
+            // 添加防抖机制，避免短时间内多次变化导致重复识别
+            if (this._srcChangeTimeout) {
+              clearTimeout(this._srcChangeTimeout);
+            }
+            
+            this._srcChangeTimeout = setTimeout(() => {
+              // 等待图片加载完成后识别
+              if (img.complete) {
+                this.recognizeClickedImage(img);
+              } else {
+                img.onload = () => {
+                  this.recognizeClickedImage(img);
+                };
+                img.onerror = () => {
+                  this.log("被点击的图片加载失败");
+                };
+              }
+            }, 300); // 300ms防抖延迟
+          }
+        }
+        
+        // 识别被点击的图片
+        async recognizeClickedImage(img) {
+          this.log("开始识别被点击的验证码图片");
+          
+          try {
+            // 直接识别这张图片
+            const text = await this.recognizeCaptcha(img);
+            if (text) {
+              this.log("成功识别被点击的验证码: " + text);
+              
+              // 尝试自动填充
+              if (this.options.autoFill) {
+                const filled = this.fillCaptcha(text, [img]);
+                this._hasInputField = filled;
+              }
+              
+              // 保存识别结果
+              this._lastRecognizedText = text;
+              
+              // 如果没有找到输入框，显示复制按钮
+              if (!this._hasInputField && this._copyButton) {
+                this._copyButton.style.display = "block";
+              }
+              
+              // 更新按钮位置
+              this.updateCaptchaButtonPosition([img]);
+            }
+          } catch (error) {
+            this.log("识别被点击的图片失败: " + error.message);
+          }
+        }
+        
+        // 停止监听特定图片
+        stopMonitoringImage(img) {
+          if (!this._monitoredImages.has(img)) return;
+          
+          const monitorData = this._monitoredImages.get(img);
+          if (monitorData.observer) {
+            monitorData.observer.disconnect();
+          }
+          
+          this._monitoredImages.delete(img);
+          this.log("停止监听图片: " + (img.src || "无src"));
         }
         
         // 监听单页面应用的路由变化
@@ -454,6 +646,17 @@ try {
             this._cachedImgs = null;
             this._cachedInputs = null;
             
+            // 清理图片监听
+            if (this._monitoredImages) {
+              this._monitoredImages.forEach((monitorData, img) => {
+                if (monitorData.observer) {
+                  monitorData.observer.disconnect();
+                }
+              });
+              this._monitoredImages.clear();
+              this._clickedImage = null;
+            }
+            
             // 重新设置DOM观察器，以确保能捕获新路由下的验证码元素
             this.setupObserver();
             
@@ -471,6 +674,23 @@ try {
           if (this.captchaObserver) {
             this.captchaObserver.disconnect();
             this.captchaObserver = null;
+          }
+          
+          // 清理图片监听
+          if (this._monitoredImages) {
+            this._monitoredImages.forEach((monitorData, img) => {
+              if (monitorData.observer) {
+                monitorData.observer.disconnect();
+              }
+            });
+            this._monitoredImages.clear();
+            this._clickedImage = null;
+          }
+          
+          // 清除防抖超时器
+          if (this._srcChangeTimeout) {
+            clearTimeout(this._srcChangeTimeout);
+            this._srcChangeTimeout = null;
           }
           
           // 清除URL检查间隔
@@ -524,6 +744,11 @@ try {
                 }
                 this.log("延迟检查找到" + captchaImgs.length + "个验证码图片");
                 if (captchaImgs.length > 0) {
+                  // 检查是否有点击图片正在等待识别，避免冲突
+                  if (this._srcChangeTimeout) {
+                    this.log("检测到点击图片等待识别，跳过延迟检查的识别");
+                    return;
+                  }
                   this.findAndRecognize(captchaImgs);
                 }
               } catch (e) {
@@ -660,6 +885,11 @@ try {
                     
                     // 首次识别
                     setTimeout(() => {
+                      // 检查是否有点击图片正在等待识别，避免冲突
+                      if (this._srcChangeTimeout) {
+                        this.log("检测到点击图片等待识别，跳过DOM观察器触发的识别");
+                        return;
+                      }
                       this.findAndRecognize(captchaImgs);
                     }, 300);
                   }
@@ -737,8 +967,45 @@ try {
             captchaImgs = Array.from(rootNode.querySelectorAll(allSelectors));
           }
           
-          // 3. 根据尺寸的启发式查找作为最后的备选方案
+          // 3. 如果还是没找到，先寻找验证码输入框，然后以输入框的父级父级为根节点启发式查找
           if (captchaImgs.length === 0) {
+            this.log("常规选择器未找到验证码图片，尝试通过输入框定位");
+            
+            // 查找验证码输入框
+            const inputSelectors = this.options.ocrRule?.inputSelector
+              ? [this.options.ocrRule.inputSelector]
+              : this.options.inputSelectors;
+            
+            const allInputSelectors = inputSelectors.join(', ');
+            const captchaInputs = Array.from(rootNode.querySelectorAll(allInputSelectors));
+            
+            if (captchaInputs.length > 0) {
+              this.log("找到" + captchaInputs.length + "个验证码输入框，以其父级父级为根节点搜索");
+              
+              for (const input of captchaInputs) {
+                // 以输入框的父级父级为搜索根节点
+                const grandParent = input.parentElement?.parentElement;
+                if (grandParent) {
+                  this.log("在输入框的父级父级中搜索验证码图片");
+                  const nearbyImgs = Array.from(grandParent.querySelectorAll("img"));
+                  
+                  // 启发式过滤：尺寸符合验证码特征的图片
+                  const candidateImgs = nearbyImgs.filter(img => 
+                    img.width > 70 && img.width < 200 && img.height > 20 && img.height < 100
+                  );
+                  
+                  if (candidateImgs.length > 0) {
+                    this.log("在输入框附近找到" + candidateImgs.length + "个候选验证码图片");
+                    captchaImgs = [...captchaImgs, ...candidateImgs];
+                  }
+                }
+              }
+            }
+          }
+          
+          // 4. 如果通过输入框也没找到，最后使用全局启发式查找作为备选方案
+          if (captchaImgs.length === 0) {
+            this.log("通过输入框定位也未找到，使用全局启发式查找");
             const allImgs = rootNode.querySelectorAll("img");
             captchaImgs = Array.from(allImgs).filter(img => 
               img.width > 70 && img.width < 200 && img.height > 20 && img.height < 100
