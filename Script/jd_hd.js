@@ -423,7 +423,7 @@ try {
               this.handleImageClick(event.target);
             } else {
               // 点击非图片元素时，清理验证码图片监听状态
-              this.handleNonImageClick();
+              // this.handleNonImageClick();
             }
           }, true); // 使用捕获阶段确保能监听到事件
         }
@@ -433,7 +433,7 @@ try {
           this.log("设置短信验证码重复填入检测");
           
           // 监听所有输入框的input事件
-          document.addEventListener('change', (event) => {
+          document.addEventListener('input', (event) => {
             const input = event.target;
             if (input.tagName !== 'INPUT') return;
             
@@ -521,7 +521,7 @@ try {
           if (!img.src) return;
           
           // 如果之前有被点击的图片，且不是同一张图片，清理之前的监听状态
-          if (this._clickedImage && this._clickedImage !== img) {
+          if (this._clickedImage && this._clickedImage !== img && this.recognizing) {
             this.log("检测到点击了新图片，清理之前的监听状态");
             this.stopMonitoringImage(this._clickedImage);
             this._clickedImage = null;
