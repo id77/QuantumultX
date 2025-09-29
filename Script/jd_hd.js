@@ -381,6 +381,9 @@ try {
           // 设置图片点击事件监听
           this.setupImageClickListener();
 
+          // 设置短信验证码重复填入检测
+          this.setupSMSCodeDuplicateDetection();
+
           if (this.options.autoRecognize) {
             this.setupObserver();
             this.findAndRecognize();
@@ -423,6 +426,75 @@ try {
               this.handleNonImageClick();
             }
           }, true); // 使用捕获阶段确保能监听到事件
+        }
+        
+        // 设置短信验证码重复填入检测
+        setupSMSCodeDuplicateDetection() {
+          this.log("设置短信验证码重复填入检测");
+          
+          // 监听所有输入框的input事件
+          document.addEventListener('change', (event) => {
+            const input = event.target;
+            if (input.tagName !== 'INPUT') return;
+            
+            const value = input.value;
+            console.log(\`输入框变化检测: \${value}\`);
+            if (!value || value.length <= 6) return;
+            
+            // 只检查8位或12位的情况（常见的重复）
+            if (value.length === 8 || value.length === 12) {
+              // 检查是否是纯数字
+              if (/^\\d+$/.test(value)) {
+              
+                const halfLength = value.length / 2;
+                const firstHalf = value.substring(0, halfLength);
+                const secondHalf = value.substring(halfLength);
+                
+                // 如果前半部分和后半部分相同，保留前半部分
+                if (firstHalf === secondHalf) {
+                  this.log("检测到重复短信验证码: " + value + " -> " + firstHalf);
+                  
+                  // 修正验证码
+                  input.value = firstHalf;
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                  
+                  // 显示修正提示
+                  this.showSMSFixNotification(value, firstHalf);
+                }
+              }
+            }
+          }, true);
+        }
+        
+        // 显示短信验证码修正提示
+        showSMSFixNotification(original, fixed) {
+          const notification = document.createElement("div");
+          notification.textContent = "已修正重复验证码: " + original + " → " + fixed;
+          notification.style.position = "fixed";
+          notification.style.bottom = "200px";
+          notification.style.right = "10px";
+          notification.style.padding = "10px 15px";
+          notification.style.backgroundColor = "rgba(255, 152, 0, 0.8)";
+          notification.style.color = "white";
+          notification.style.borderRadius = "4px";
+          notification.style.zIndex = "100000";
+          notification.style.fontSize = "14px";
+          notification.style.transition = "opacity 0.3s";
+          notification.style.maxWidth = "250px";
+          notification.style.wordBreak = "break-all";
+          
+          document.body.appendChild(notification);
+          
+          // 3秒后淡出并移除
+          setTimeout(() => {
+            notification.style.opacity = "0";
+            setTimeout(() => {
+              if (notification.parentNode) {
+                document.body.removeChild(notification);
+              }
+            }, 300);
+          }, 3000);
         }
         
         // 处理非图片元素点击事件
@@ -594,6 +666,11 @@ try {
         
         // 识别被点击的图片
         async recognizeClickedImage(img) {
+          if (img.naturalWidth < img.naturalHeight || img.naturalWidth < 70 || img.naturalWidth > 200 || img.naturalHeight < 20 || img.naturalHeight > 100) {
+            this.log("被点击的图片尺寸异常，可能不是验证码图片，跳过识别");
+            return;
+          }
+
           this.log("开始识别被点击的验证码图片");
           
           try {
