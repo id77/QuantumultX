@@ -414,12 +414,31 @@ try {
           this._monitoredImages = new Map();
           this._clickedImage = null; // 当前被点击的图片
           
-          // 使用事件委托监听所有图片点击
+          // 使用事件委托监听所有点击事件
           document.addEventListener('click', (event) => {
             if (event.target.tagName === 'IMG') {
               this.handleImageClick(event.target);
+            } else {
+              // 点击非图片元素时，清理验证码图片监听状态
+              this.handleNonImageClick();
             }
           }, true); // 使用捕获阶段确保能监听到事件
+        }
+        
+        // 处理非图片元素点击事件
+        handleNonImageClick() {
+          // 如果有被点击的验证码图片正在监听，清理状态
+          if (this._clickedImage) {
+            this.log("检测到点击非图片元素，清理验证码图片监听状态");
+            this.stopMonitoringImage(this._clickedImage);
+            this._clickedImage = null;
+            
+            // 清除防抖超时器
+            if (this._srcChangeTimeout) {
+              clearTimeout(this._srcChangeTimeout);
+              this._srcChangeTimeout = null;
+            }
+          }
         }
         
         // 处理图片点击事件
@@ -428,6 +447,19 @@ try {
           
           // 如果图片没有src，跳过
           if (!img.src) return;
+          
+          // 如果之前有被点击的图片，且不是同一张图片，清理之前的监听状态
+          if (this._clickedImage && this._clickedImage !== img) {
+            this.log("检测到点击了新图片，清理之前的监听状态");
+            this.stopMonitoringImage(this._clickedImage);
+            this._clickedImage = null;
+            
+            // 清除防抖超时器
+            if (this._srcChangeTimeout) {
+              clearTimeout(this._srcChangeTimeout);
+              this._srcChangeTimeout = null;
+            }
+          }
           
           // 检查是否是已缓存的验证码图片
           const isCachedCaptcha = this._cachedImgs && this._cachedImgs.includes(img);
@@ -454,7 +486,8 @@ try {
           this._monitoredImages.set(img, {
             originalSrc: originalSrc,
             lastSrc: originalSrc,
-            observer: null
+            observer: null,
+            timeoutId: null
           });
           
           this.log("开始监听图片src变化: " + originalSrc);
@@ -476,7 +509,8 @@ try {
           });
           
           // 保存观察器引用
-          this._monitoredImages.get(img).observer = observer;
+          const monitorData = this._monitoredImages.get(img);
+          monitorData.observer = observer;
           
           // 定期检查src变化（作为备选方案）
           const checkInterval = setInterval(() => {
@@ -486,18 +520,27 @@ try {
             }
             
             const currentSrc = img.src;
-            const monitorData = this._monitoredImages.get(img);
+            const currentMonitorData = this._monitoredImages.get(img);
             
-            if (currentSrc !== monitorData.lastSrc) {
+            if (currentSrc !== currentMonitorData.lastSrc) {
               this.handleImageSrcChange(img);
             }
           }, 500);
           
-          // 30秒后停止监听该图片（防止内存泄漏）
-          setTimeout(() => {
+          // 30秒后自动停止监听该图片（防止内存泄漏和长期监听）
+          const timeoutId = setTimeout(() => {
+            this.log("图片监听超时，自动清理: " + (img.src || "无src"));
             this.stopMonitoringImage(img);
             clearInterval(checkInterval);
+            
+            // 如果这是当前被点击的图片，也清理点击状态
+            if (this._clickedImage === img) {
+              this._clickedImage = null;
+            }
           }, 30000);
+          
+          // 保存超时ID
+          monitorData.timeoutId = timeoutId;
         }
         
         // 处理图片src变化
@@ -559,6 +602,11 @@ try {
             if (text) {
               this.log("成功识别被点击的验证码: " + text);
               
+              // 识别成功后，停止监听该图片并清理点击状态
+              this.stopMonitoringImage(img);
+              this._clickedImage = null;
+              this.log("验证码识别成功，已清理点击监听状态");
+              
               // 尝试自动填充
               if (this.options.autoFill) {
                 const filled = this.fillCaptcha(text, [img]);
@@ -575,9 +623,11 @@ try {
               
               // 更新按钮位置
               this.updateCaptchaButtonPosition([img]);
+            } else {
+              this.log("识别被点击的图片失败，保持监听状态");
             }
           } catch (error) {
-            this.log("识别被点击的图片失败: " + error.message);
+            this.log("识别被点击的图片失败: " + error.message + "，保持监听状态");
           }
         }
         
@@ -586,8 +636,15 @@ try {
           if (!this._monitoredImages.has(img)) return;
           
           const monitorData = this._monitoredImages.get(img);
+          
+          // 清理观察器
           if (monitorData.observer) {
             monitorData.observer.disconnect();
+          }
+          
+          // 清理超时器
+          if (monitorData.timeoutId) {
+            clearTimeout(monitorData.timeoutId);
           }
           
           this._monitoredImages.delete(img);
@@ -652,6 +709,9 @@ try {
                 if (monitorData.observer) {
                   monitorData.observer.disconnect();
                 }
+                if (monitorData.timeoutId) {
+                  clearTimeout(monitorData.timeoutId);
+                }
               });
               this._monitoredImages.clear();
               this._clickedImage = null;
@@ -681,6 +741,9 @@ try {
             this._monitoredImages.forEach((monitorData, img) => {
               if (monitorData.observer) {
                 monitorData.observer.disconnect();
+              }
+              if (monitorData.timeoutId) {
+                clearTimeout(monitorData.timeoutId);
               }
             });
             this._monitoredImages.clear();
