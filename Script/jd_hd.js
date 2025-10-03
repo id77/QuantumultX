@@ -984,6 +984,7 @@ try {
                     }
                   }
                   this.log("检测到变化，找到" + captchaImgs.length + "个验证码图片");
+                  
                   if (captchaImgs.length > 0) {
                     // 找到验证码图片后，重新设置观察器，只监听这些图片
                     this._cachedImgs = captchaImgs;
@@ -1033,6 +1034,9 @@ try {
                       this.findAndRecognize(captchaImgs);
                     }, 300);
                   }
+
+                  const currentDisplay = captchaImgs.length > 0;
+                  this._captchaButton.style.display = currentDisplay === "none" ? "flex" : "none";
                 } catch (e) {
                   this.log("检查验证码图片出错: " + e.message);
                 } finally {
@@ -1705,7 +1709,7 @@ try {
           this.log(\`找到 \${uniqueImgs.length} 个唯一验证码图片\`);
           
           // 确保验证码按钮可见（如果找到验证码）
-          if (uniqueImgs.length > 0 && this._captchaButton) {
+          if (uniqueImgs.length > 0 && this._captchaButton && !_${prefix}_id77_needHideSwitch) {
             this._captchaButton.style.display = "flex";
           }
           
@@ -1760,7 +1764,7 @@ try {
           recognizeButton.style.fontSize = "14px";
           recognizeButton.style.cursor = "pointer";
           recognizeButton.style.textAlign = "center";
-          recognizeButton.style.display = _${prefix}_id77_needHideSwitch;
+          recognizeButton.style.display = "block";
           
           // 创建复制按钮
           const copyButton = document.createElement("div");
@@ -1797,10 +1801,10 @@ try {
           });
           
           // 双击显示/隐藏按钮组
-          document.addEventListener("dblclick", () => {
-            const currentDisplay = container.style.display;
-            container.style.display = currentDisplay === "none" ? "flex" : "none";
-          });
+          // document.addEventListener("dblclick", () => {
+          //   const currentDisplay = container.style.display;
+          //   container.style.display = currentDisplay === "none" ? "flex" : "none";
+          // });
           
           // 添加按钮到容器
           container.appendChild(recognizeButton);
@@ -2185,6 +2189,12 @@ try {
 
       _${prefix}_id77_changeBtns();
       // if (_${prefix}_id77_cookies.length > 0) _${prefix}_id77_changeBtns();
+
+      if (window._${prefix}_id77_captchaRecognizer && window._${prefix}_id77_captchaRecognizer._cachedImgs) {
+        const currentDisplay = window._${prefix}_id77_captchaRecognizer._captchaButton.style.display;
+        window._${prefix}_id77_captchaRecognizer._captchaButton.style.display = currentDisplay === "none" ? "flex" : "none";
+      }
+      
     }
 
     document.addEventListener('click', function (e) {
