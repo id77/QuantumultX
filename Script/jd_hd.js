@@ -1748,7 +1748,7 @@ try {
           container.style.position = "fixed";
           container.style.right = "10px";
           container.style.bottom = "100px";
-          container.style.display = "flex";
+          container.style.display = "none";
           container.style.flexDirection = "column";
           container.style.gap = "10px";
           container.style.zIndex = "9999";
