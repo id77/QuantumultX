@@ -367,8 +367,8 @@ try {
     </div>
   </div>`;
 
-  let scriptDoms = `<script src="https://unpkg.com/vconsole@3.14.6/dist/vconsole.min.js" ignore></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" ignore></script>`;
+  let scriptDoms = `<script src="https://unpkg.com/vconsole@3.15.1/dist/vconsole.min.js" ignore></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" ignore></script>`;
 
   // 创建验证码识别器函数
   function createCaptchaRecognizer(ocrPath, ocrRules) {
