@@ -367,7 +367,54 @@ try {
     </div>
   </div>`;
 
-  let scriptDoms = `<script src="https://unpkg.com/vconsole@3.15.1/dist/vconsole.min.js" ignore></script>
+  let scriptDoms = `<script ignore>
+    (function() {
+      window.VConsole = undefined;
+      window.vConsole = undefined;
+      window._${prefix}_id77_init_called = false;
+
+      function safeInitVConsole() {
+        if (window.VConsole && !window.vConsole) {
+          // window.vConsole = new window.VConsole();
+          if (typeof window._${prefix}_id77_init === 'function' && !window._${prefix}_id77_init_called) {
+            window._${prefix}_id77_init();
+            window._${prefix}_id77_init_called = true;
+          }
+        } else if (!window.VConsole) {
+          // 等待vConsole脚本加载
+          setTimeout(safeInitVConsole, 100);
+        }
+      }
+
+      function injectVConsole() {
+        if (!window.vConsole && !window.VConsole) {
+          var script = document.createElement('script');
+          script.src = 'https://unpkg.com/vconsole@3.15.1/dist/vconsole.min.js';
+          script.onload = safeInitVConsole;
+          if (document.body) {
+            document.body.appendChild(script);
+          } else {
+            window.addEventListener('DOMContentLoaded', function() {
+              document.body.appendChild(script);
+            });
+          }
+        } else {
+          safeInitVConsole();
+        }
+      }
+
+      injectVConsole();
+
+      window.addEventListener('hashchange', function() {
+        if (window.vConsole && window.vConsole.destroy) {
+          window.vConsole.destroy();
+          window.vConsole = null;
+        }
+        window._${prefix}_id77_init_called = false;
+        setTimeout(injectVConsole, 300);
+      });
+    })();
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" ignore></script>`;
 
   // 创建验证码识别器函数
@@ -2203,21 +2250,21 @@ try {
       
     // };
 
-    _${prefix}_id77_onReady(_${prefix}_id77_init);
+    // _${prefix}_id77_onReady(_${prefix}_id77_init);
 
-    function _${prefix}_id77_onReady(fn){
-      try {
-        const readyState = document.readyState;
-        if(readyState === 'interactive' || readyState === 'complete') {
-          fn()
-        }else{
-          window.addEventListener("DOMContentLoaded",fn);
-        }
+    // function _${prefix}_id77_onReady(fn){
+    //   try {
+    //     const readyState = document.readyState;
+    //     if(readyState === 'interactive' || readyState === 'complete') {
+    //       fn()
+    //     }else{
+    //       window.addEventListener("DOMContentLoaded",fn);
+    //     }
         
-      } catch (error) {
-        console.error(arguments.callee.name, error);
-      }
-    }
+    //   } catch (error) {
+    //     console.error(arguments.callee.name, error);
+    //   }
+    // }
 
     function _${prefix}_id77_changeBtns() {
       const \$btns = document.querySelectorAll('._${prefix}_id77_btn');
