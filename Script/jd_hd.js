@@ -3090,7 +3090,7 @@ try {
   </script>
   `;
 
-  let clickerScript = `<script src="https://fastly.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker_cdnv4.js" ignore></script>`;
+  let clickerScript = `<script src="https://fastly.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker.min.js" ignore></script>`;
 
   // if (/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i.test(html)) {
   //   html = html.replace(/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i, ``);
