@@ -16,7 +16,12 @@ const CACHE_KEYANDHEADERS = CACHE_KEY + '_headers';
     });
   } else {
     try {
-      const resp = await $task.fetch({ url: CDN_URL });
+      const resp = await $task.fetch({
+        url: CDN_URL,
+        method: $request.method,
+        headers: $request.headers,
+        body: $request.body,
+      });
       if (resp.statusCode === 200) {
         $prefs.setValueForKey(resp.body, CACHE_KEY);
 
@@ -47,7 +52,7 @@ function getNpmCacheKey(url) {
   let m = url.match(/([^\/]+)@([\d.]+).+\.([^\.]+)\?/);
   if (m) return `${m[1]}@${m[2]}.${m[3]}`;
   // 2. 兜底
-  return url;
+  return url.replace(/https?:\/\//g, '');
 }
 
 function Env(name, opts) {
