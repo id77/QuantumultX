@@ -389,7 +389,7 @@ try {
       function injectVConsole() {
         if (!window.vConsole && !window.VConsole) {
           var script = document.createElement('script');
-          script.src = 'https://unpkg.com/vconsole@3.15.1/dist/vconsole.min.js';
+          script.src = 'https://unpkg.com/vconsole@3.14.7/dist/vconsole.min.js';
           script.onload = safeInitVConsole;
           if (document.body) {
             document.body.appendChild(script);
@@ -2440,6 +2440,7 @@ try {
         if (_${prefix}_id77_needHideSwitch) {
            _${prefix}_id77_vConsole.hideSwitch(); 
         }
+        console.log(window._${prefix}_id77_vConsole.version);
   
         const ID77Plugin = new VConsole.VConsolePlugin("id77_plugin", "工具");
 
