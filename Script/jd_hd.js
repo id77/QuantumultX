@@ -389,7 +389,7 @@ try {
       function injectVConsole() {
         if (!window.vConsole && !window.VConsole) {
           var script = document.createElement('script');
-          script.src = 'https://unpkg.com/vconsole@3.14.7/dist/vconsole.min.js';
+          script.src = 'https://unpkg.com/vconsole@3.14.7/dist/vconsole.min.js?v=id77';
           script.onload = safeInitVConsole;
           if (document.body) {
             document.body.appendChild(script);
@@ -415,7 +415,7 @@ try {
       });
     })();
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" ignore></script>`;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js?v=id77" ignore></script>`;
 
   // 创建验证码识别器函数
   function createCaptchaRecognizer(ocrPath, ocrRules) {
@@ -3091,7 +3091,7 @@ try {
   </script>
   `;
 
-  let clickerScript = `<script src="https://fastly.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker.min.js" ignore></script>`;
+  let clickerScript = `<script src="https://fastly.jsdelivr.net/gh/id77/QuantumultX@master/Script/clicker.min.js?v=id77" ignore></script>`;
 
   // if (/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i.test(html)) {
   //   html = html.replace(/<script.*v(C|c)onsole(\.min)?\.js.+?script>/i, ``);

@@ -476,11 +476,11 @@ function Env(name, opts) {
       if (request.headers) {
         delete request.headers['Content-Type'];
         delete request.headers['Content-Length'];
-        delete opts.headers['Host'];
+        delete request.headers['Host'];
         // HTTP/2 全是小写
         delete request.headers['content-type'];
         delete request.headers['content-length'];
-        delete opts.headers['host'];
+        delete request.headers['host'];
       }
       if (request.params) {
         request.url += '?' + this.queryStr(request.params);
