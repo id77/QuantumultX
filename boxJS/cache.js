@@ -23,8 +23,6 @@ const CACHE_KEYANDHEADERS = CACHE_KEY + '_headers';
         body: $request.body,
       });
       if (resp.statusCode === 200) {
-        $prefs.setValueForKey(resp.body, CACHE_KEY);
-
         // 写入 iCloud
         await $.writeFile(resp.body, `../cache/${CACHE_KEY}`);
         await $.writeFile(
