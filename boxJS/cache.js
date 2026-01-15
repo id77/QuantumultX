@@ -23,6 +23,26 @@ const CACHE_KEYANDHEADERS = CACHE_KEY + '_headers';
         body: $request.body,
       });
       if (resp.statusCode === 200) {
+        let key = 'Set-Cookie';
+        let cookies = resp.headers[key];
+        if (!cookies) {
+          key = 'set-cookie';
+          cookies = resp.headers[key];
+        }
+        if (cookies) {
+          cookies = cookies
+            .replace(/HttpOnly/gi, '')
+            .replace(/(Expires=.+?),/gi, '$1@')
+            .split(', ');
+
+          let _key = key;
+          cookies.forEach((ck, i) => {
+            // 利用空格设置多个 set-cookie
+            _key += ' ';
+            resp.headers[_key] = ck.replace(/@/g, ',');
+          });
+        }
+
         // 写入 iCloud
         await $.writeFile(resp.body, `../cache/${CACHE_KEY}`);
         await $.writeFile(
