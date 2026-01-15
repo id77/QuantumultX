@@ -3,15 +3,43 @@ const CDN_URL = $request.url;
 
 const CACHE_KEY = getNpmCacheKey(CDN_URL);
 const CACHE_KEYANDHEADERS = CACHE_KEY + '_headers';
+const IS_FONT = /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(CDN_URL);
 
 (async () => {
   const cache = $.readFile(`../cache/${CACHE_KEY}`);
   const cacheHeaders = $.readFile(`../cache/${CACHE_KEYANDHEADERS}.txt`);
   if (cache && cacheHeaders) {
     console.log(`使用缓存: ${CACHE_KEY}`);
+
+    // 检测到 headers 的属性的值是时间格式的话，更新为当前时间，避免被识别为过期
+    const headersObj = JSON.parse(cacheHeaders);
+
+    // 遍历 headers，检测并更新时间格式的值
+    for (const [key, value] of Object.entries(headersObj)) {
+      if (typeof value === 'string') {
+        const timeFormat = detectTimeFormat(value);
+        if (timeFormat) {
+          let newTime;
+          if (IS_FONT && key.toLowerCase() === 'expires') {
+            // Google Fonts 的 Expires 头特殊处理为未来时间，避免字体文件过期
+            const futureDate = new Date();
+            futureDate.setFullYear(futureDate.getFullYear() + 1); // 设置为一年后
+            newTime = convertToFormat(futureDate, timeFormat);
+          } else {
+            newTime = convertToFormat(new Date(), timeFormat);
+          }
+
+          console.log(
+            `更新时间字段 ${key} [${timeFormat}]: ${value} -> ${newTime}`
+          );
+          headersObj[key] = newTime;
+        }
+      }
+    }
+
     $.done({
       status: 'HTTP/1.1 200',
-      headers: cacheHeaders ? JSON.parse(cacheHeaders) : {},
+      headers: headersObj,
       body: cache,
     });
   } else {
@@ -63,6 +91,124 @@ const CACHE_KEYANDHEADERS = CACHE_KEY + '_headers';
     }
   }
 })();
+
+/**
+ * 检测字符串是什么时间格式
+ * @param {string} str - 要检测的字符串
+ * @returns {string|null} 时间格式类型，如果不是时间格式返回 null
+ */
+function detectTimeFormat(str) {
+  if (!str || typeof str !== 'string') return null;
+
+  // HTTP 日期格式 (RFC 7231 / RFC 1123)
+  // 例如: Mon, 15 Jan 2026 12:00:00 GMT
+  const httpDatePattern =
+    /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s\d{2}\s(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT$/;
+  if (httpDatePattern.test(str)) {
+    return 'http-date';
+  }
+
+  // ISO 8601 格式（带毫秒和Z）
+  // 例如: 2026-01-15T12:00:00.000Z
+  const iso8601WithMsPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+  if (iso8601WithMsPattern.test(str)) {
+    return 'iso8601-ms';
+  }
+
+  // ISO 8601 格式（不带毫秒但有Z）
+  // 例如: 2026-01-15T12:00:00Z
+  const iso8601WithZPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+  if (iso8601WithZPattern.test(str)) {
+    return 'iso8601-z';
+  }
+
+  // ISO 8601 格式（不带Z）
+  // 例如: 2026-01-15T12:00:00
+  const iso8601Pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+  if (iso8601Pattern.test(str)) {
+    return 'iso8601';
+  }
+
+  // 时间戳（秒，10位）
+  const timestampSecPattern = /^\d{10}$/;
+  if (timestampSecPattern.test(str)) {
+    const timestamp = parseInt(str);
+    // 验证时间戳是否在合理范围内（2000-2100年）
+    if (timestamp > 946684800 && timestamp < 4102444800) {
+      return 'timestamp-sec';
+    }
+  }
+
+  // 时间戳（毫秒，13位）
+  const timestampMsPattern = /^\d{13}$/;
+  if (timestampMsPattern.test(str)) {
+    const timestamp = parseInt(str);
+    // 验证时间戳是否在合理范围内（2000-2100年）
+    if (timestamp > 946684800000 && timestamp < 4102444800000) {
+      return 'timestamp-ms';
+    }
+  }
+
+  // 尝试用 Date.parse 解析其他格式
+  if (!isNaN(Date.parse(str))) {
+    // 包含 GMT 关键词
+    if (/GMT/i.test(str)) {
+      return 'date-gmt';
+    }
+    // 包含 UTC 关键词
+    if (/UTC/i.test(str)) {
+      return 'date-utc';
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 将日期转换为指定格式
+ * @param {Date} date - 日期对象
+ * @param {string} format - 格式类型
+ * @returns {string} 格式化后的时间字符串
+ */
+function convertToFormat(date, format) {
+  switch (format) {
+    case 'http-date':
+      // RFC 1123 格式: Mon, 15 Jan 2026 12:00:00 GMT
+      return date.toUTCString();
+
+    case 'iso8601-ms':
+      // ISO 8601 带毫秒: 2026-01-15T12:00:00.000Z
+      return date.toISOString();
+
+    case 'iso8601-z':
+      // ISO 8601 不带毫秒: 2026-01-15T12:00:00Z
+      return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+    case 'iso8601':
+      // ISO 8601 不带Z: 2026-01-15T12:00:00
+      return date.toISOString().replace(/\.\d{3}Z$/, '');
+
+    case 'timestamp-sec':
+      // 时间戳（秒）
+      return Math.floor(date.getTime() / 1000).toString();
+
+    case 'timestamp-ms':
+      // 时间戳（毫秒）
+      return date.getTime().toString();
+
+    case 'date-gmt':
+      // GMT 格式
+      return date.toUTCString();
+
+    case 'date-utc':
+      // UTC 格式
+      return date.toUTCString();
+
+    default:
+      // 默认使用 HTTP 日期格式
+      return date.toUTCString();
+  }
+}
 
 // 提取 npm 名和版本号作为 cacheKey
 function getNpmCacheKey(url) {
