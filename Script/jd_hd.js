@@ -162,14 +162,14 @@ if ($request.url.includes('.com/mall/active/') && /,"status":"\d"/.test(html)) {
   ) {
     html = html.replace(
       /hour_coupon_empty_in_this_time|coupon_empty/g,
-      'coupon_receive'
+      'coupon_receive',
     );
   }
 }
 
 html = html.replace(
   /id="poster_status"\s+type="hidden"\s+value="0"/g,
-  'id="poster_status" type="hidden" value="1"'
+  'id="poster_status" type="hidden" value="1"',
 );
 
 html = html.replace(/("|')render("|'):false/g, '$1render$2:true');
@@ -190,7 +190,7 @@ if ($request.url.includes('lovemojit')) {
   if (/ grey-btn/g.test(html)) {
     html = html.replace(
       / (data-task="[^"]+")/g,
-      ' data-index="1" $1 data-method="get"'
+      ' data-index="1" $1 data-method="get"',
     );
   }
   html = html.replace(/ over-btn/g, '');
@@ -202,18 +202,22 @@ html = html.replace(/capture=?/g, '');
 
 html = html.replace(
   /opendate=\d+;openhours=\d+;gifthours=\d+/g,
-  `opendate=${new Date().getDate()};openhours=0;gifthours=0`
+  `opendate=${new Date().getDate()};openhours=0;gifthours=0`,
 );
 html = html.replace(/btn_yqw disable/g, `btn_q`);
 
-
-
-if (
-  $request.url.includes('/sqb.html')
-) {
+if ($request.url.includes('/sqb.html')) {
   html = html.replace(/"status":\d,/, '"status":2,');
-  html = html.replace(/"startTime":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}",/, '"startTime":"2026-02-06 00:00",');
+  html = html.replace(
+    /"startTime":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}",/,
+    '"startTime":"2026-02-06 00:00",',
+  );
   html = html.replace(/"\$startTime":\d+,/, '"$startTime":1770307200000,');
+  html = html.replace(
+    /"endTime":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}",/,
+    '"endTime":"2077-07-07 17:00:00:000",',
+  );
+  html = html.replace(/"\$endTime":\d+,/, '"$endTime":3392874000000,');
 }
 
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
@@ -224,7 +228,7 @@ try {
   $.getData('CookieJD2') && cookies.push($.getData('CookieJD2'));
 
   const extraCookies = JSON.parse($.getData('CookiesJD') || '[]').map(
-    (item) => item.cookie
+    (item) => item.cookie,
   );
 
   if ($.isJD) {
@@ -431,7 +435,7 @@ try {
   function createCaptchaRecognizer(ocrPath, ocrRules) {
     const ocrRule =
       ocrRules.filter(
-        (rule) => rule?.domain && $.domain.includes(rule?.domain)
+        (rule) => rule?.domain && $.domain.includes(rule?.domain),
       )?.[0] || null;
     return `<script ignore>
     // 验证码识别器
@@ -2022,7 +2026,7 @@ try {
   if (vx77) {
     html = html.replace(
       '{initJSSDK(initPage)},200);',
-      '{initJSSDK(initPage)},0);'
+      '{initJSSDK(initPage)},0);',
     );
   }
 
@@ -3118,18 +3122,18 @@ try {
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
-      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   } else {
     html = html.replace(
       /(<\/head>|<script|<div)/i,
-      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`
+      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   }
 
   html = html.replace(
     /(<\/body>)(?![\s\S]*\1)/,
-    `${clickerDom}${mitmFixContent}${clickerScript}$1`
+    `${clickerDom}${mitmFixContent}${clickerScript}$1`,
   );
   // html = html.slice() + ``;
 } catch (error) {
