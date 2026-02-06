@@ -206,6 +206,16 @@ html = html.replace(
 );
 html = html.replace(/btn_yqw disable/g, `btn_q`);
 
+
+
+if (
+  $request.url.includes('/sqb.html')
+) {
+  html = html.replace(/"status":\d,/, '"status":2,');
+  html = html.replace(/"startTime":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}",/, '"startTime":"2026-02-06 00:00",');
+  html = html.replace(/"\$startTime":\d+,/, '"$startTime":1770307200000,');
+}
+
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
 
 try {
