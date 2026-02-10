@@ -30,6 +30,7 @@ if ($request.url.includes('/seckill')) {
 }
 
 let notCache = $.getData('id77_notCache') == 1 || false;
+let editDomClass = $.getData('id77_editDomClass');
 let toolSwitch = $.getData('id77_tools_switch');
 const clicker_off_zIndex = $.getData('id77_clicker_off_zIndex') || 10001;
 const clicker_frequency = $.getData('id77_clicker_frequency') || 10;
@@ -2357,6 +2358,10 @@ try {
 
       [].map.call(document.querySelectorAll('[disabled]'), item => {
         item.removeAttribute("disabled");
+      })
+
+      document.querySelectorAll("${editDomClass}").forEach(item => {
+        item.contentEditable = true;
       })
     });
     

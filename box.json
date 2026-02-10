@@ -195,7 +195,8 @@
         "id77_needReloadStatusCode",
         "id77_hideDomClass",
         "id77_click_interval",
-        "id77_notCache"
+        "id77_notCache",
+        "id77_editDomClass"
       ],
       "settings": [
         {
@@ -208,6 +209,15 @@
         {
           "id": "id77_hideDomClass",
           "name": "双击隐藏元素",
+          "val": "",
+          "type": "textarea",
+          "autoGrow": true,
+          "rows": 2,
+          "desc": "元素的class"
+        },
+        {
+          "id": "id77_editDomClass",
+          "name": "编辑元素class",
           "val": "",
           "type": "textarea",
           "autoGrow": true,
