@@ -213,11 +213,12 @@ if ($request.url.includes('/sqb.html')) {
     '"startTime":"2026-02-06 00:00",',
   );
   html = html.replace(/"\$startTime":\d+,/, '"$startTime":1770307200000,');
-  html = html.replace(
-    /"endTime":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}",/,
-    '"endTime":"2077-07-07 17:00:00:000",',
-  );
-  html = html.replace(/"\$endTime":\d+,/, '"$endTime":3392874000000,');
+}
+if ($request.url.includes('m=yunc_ticket&')) {
+  html = html.replace(/gps:0,/, 'gps:1,');
+  html = html.replace(/\(isMatch\)/, '(true)');
+  html = html.replace(/opg:"1"/, 'opg:"0"');
+  html = html.replace(/"open2":\d+/g, '"open2":0');
 }
 
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
