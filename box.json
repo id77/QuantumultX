@@ -11,6 +11,7 @@
       "keys": [
         "id77_ql_flag",
         "id77_ql_addrs",
+        "id77_ql_baseUrl",
         "id77_ql_port",
         "id77_ql_clientId",
         "id77_ql_clientSecret",
@@ -70,6 +71,12 @@
           "name": "青龙端口",
           "val": "",
           "type": "number"
+        },
+        {
+          "id": "id77_ql_baseUrl",
+          "name": "青龙基础URL",
+          "val": "",
+          "type": "text"
         },
         {
           "id": "id77_ql_clientId",
