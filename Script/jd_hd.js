@@ -472,6 +472,7 @@ try {
               'img[id*="verify"]',
               'img[class*="captcha"]',
               'img[src*="checkcode"]',
+              'img[src*="verification"]',
               'img[src*="seccode"]',
               '.valid-img img',
               '.verifyimg',
