@@ -115,6 +115,7 @@ class Qinglong {
         name: name,
         command: command,
         schedule: schedule,
+        allow_multiple_instances: 1,
       });
 
       $.post(
