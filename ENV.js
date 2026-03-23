@@ -1,3 +1,5 @@
+// https://github.com/chavyleung/scripts/blob/master/Env.js
+// prettier-ignore
 function Env(name, opts) {
   class Http {
     constructor(env) {
@@ -10,12 +12,27 @@ function Env(name, opts) {
       if (method === 'POST') {
         sender = this.post;
       }
-      return new Promise((resolve, reject) => {
+
+      const call = new Promise((resolve, reject) => {
         sender.call(this, opts, (err, resp, body) => {
           if (err) reject(err);
           else resolve(resp);
         });
       });
+
+      if (opts.timeout) {
+        let timer;
+        return Promise.race([
+          call.finally(() => clearTimeout(timer)),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('请求超时')),
+              opts.timeout,
+            );
+          }),
+        ]);
+      }
+      return call;
     }
 
     get(opts) {
@@ -42,6 +59,123 @@ function Env(name, opts) {
       this.startTime = new Date().getTime();
       Object.assign(this, opts);
       this.log('', `🔔${this.name}, 开始!`);
+
+      if (this.isNode()) {
+        // Node.js 原生模块
+        this.Buffer = Buffer;
+        this.fs = require('fs');
+        this.path = require('path');
+      } else {
+        // console.log(`创建 Buffer Polyfill`);
+        this.Buffer = this.createBufferPolyfill(); // 创建 Buffer Polyfill
+      }
+    }
+
+    // Buffer Polyfill（适用于 QuanX / Surge / Loon / TrollScript 等无原生 Buffer 的环境）
+    createBufferPolyfill() {
+      return class BufferPolyfill extends Uint8Array {
+        /**
+         * 判断是否为 BufferPolyfill 实例
+         */
+        static isBuffer(obj) {
+          return obj instanceof BufferPolyfill;
+        }
+
+        /**
+         * 创建指定大小的零填充 Buffer
+         */
+        static alloc(size, fill = 0) {
+          const buf = new BufferPolyfill(size);
+          if (fill !== 0) buf.fill(fill);
+          return buf;
+        }
+
+        /**
+         * 拼接多个 Buffer
+         */
+        static concat(list, totalLength) {
+          if (!totalLength) {
+            totalLength = list.reduce((acc, buf) => acc + buf.length, 0);
+          }
+          const result = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const buf of list) {
+            result.set(buf, offset);
+            offset += buf.length;
+          }
+          return new BufferPolyfill(result);
+        }
+
+        /**
+         * 从多种类型创建 Buffer
+         * 支持: string (base64/utf8/hex), Array, Uint8Array, ArrayBuffer
+         */
+        static from(value, encoding) {
+          // 字符串
+          if (typeof value === 'string') {
+            if (encoding === 'base64' || encoding === 'base64url') {
+              // 处理 base64url 编码 (JWT 格式)
+              let fixedBase64 = value.replace(/-/g, '+').replace(/_/g, '/');
+              while (fixedBase64.length % 4) fixedBase64 += '=';
+              try {
+                const binaryStr = atob(fixedBase64);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                  bytes[i] = binaryStr.charCodeAt(i);
+                }
+                return new BufferPolyfill(bytes);
+              } catch (e) {
+                console.log('Base64 解码错误:', e.message);
+                throw e;
+              }
+            } else if (encoding === 'hex') {
+              const bytes = new Uint8Array(value.length / 2);
+              for (let i = 0; i < value.length; i += 2) {
+                bytes[i / 2] = parseInt(value.substring(i, i + 2), 16);
+              }
+              return new BufferPolyfill(bytes);
+            } else {
+              // 默认 utf-8
+              return new BufferPolyfill(new TextEncoder().encode(value));
+            }
+          }
+          // Array / Uint8Array / ArrayBuffer
+          if (Array.isArray(value)) {
+            return new BufferPolyfill(new Uint8Array(value));
+          }
+          if (value instanceof ArrayBuffer) {
+            return new BufferPolyfill(new Uint8Array(value));
+          }
+          if (value instanceof Uint8Array || value instanceof BufferPolyfill) {
+            return new BufferPolyfill(value);
+          }
+          throw new Error('BufferPolyfill.from: unsupported input type');
+        }
+
+        /**
+         * 转换为指定编码的字符串
+         * 支持: base64 / utf8 / hex
+         */
+        toString(encoding = 'utf-8') {
+          if (encoding === 'base64') {
+            let binaryStr = '';
+            for (let i = 0; i < this.length; i++) {
+              binaryStr += String.fromCharCode(this[i]);
+            }
+            return btoa(binaryStr);
+          } else if (encoding === 'hex') {
+            let hex = '';
+            for (let i = 0; i < this.length; i++) {
+              hex += this[i].toString(16).padStart(2, '0');
+            }
+            return hex;
+          } else if (['utf8', 'utf-8'].includes(encoding)) {
+            return new TextDecoder().decode(this);
+          }
+          // 回退到 utf-8
+          return new TextDecoder().decode(this);
+        }
+      };
     }
 
     isNode() {
@@ -51,7 +185,10 @@ function Env(name, opts) {
     isQuanX() {
       return 'undefined' !== typeof $task;
     }
-
+    
+    isTrollScript() {
+      return typeof TrollScriptPlugin !== 'undefined' && TrollScriptPlugin !== undefined;
+    }
     isSurge() {
       return 'undefined' !== typeof $httpClient && 'undefined' === typeof $loon;
     }
@@ -85,8 +222,10 @@ function Env(name, opts) {
       const val = this.getData(key);
       if (val) {
         try {
-          json = JSON.parse(this.getData(key));
-        } catch {}
+          json = JSON.parse(val);
+        } catch (e) {
+          this.logErr(e);
+        }
       }
       return json;
     }
@@ -94,7 +233,8 @@ function Env(name, opts) {
     setJson(val, key) {
       try {
         return this.setData(JSON.stringify(val), key);
-      } catch {
+      } catch (e) {
+        this.logErr(e);
         return false;
       }
     }
@@ -131,8 +271,6 @@ function Env(name, opts) {
 
     loadData() {
       if (this.isNode()) {
-        this.fs = this.fs ? this.fs : require('fs');
-        this.path = this.path ? this.path : require('path');
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
@@ -154,10 +292,64 @@ function Env(name, opts) {
       } else return {};
     }
 
+    readFile(filePath) {
+      try {
+        if (typeof $iCloud !== 'undefined') {
+          if (!filePath && fileName) {
+            filePath = '../Scripts/' + fileName;
+          }
+          // QuantumultX
+          let readUint8Array = $iCloud.readFile(filePath);
+          if (readUint8Array === undefined) {
+            console.log(`读取失败！可能该设备没同步到 ${filePath} 文件。`);
+          } else {
+            let textDecoder = new TextDecoder();
+            let readContent = textDecoder.decode(readUint8Array);
+            console.log('读取文件成功！');
+            return readContent;
+          }
+        } else if (this.isNode()) {
+          // Node.js
+          if (!filePath && fileName) {
+            filePath = __dirname + '/' + fileName;
+          }
+          const fs = require('fs');
+          const data = fs.readFileSync(filePath, 'utf8');
+          return data;
+        } else {
+          throw new Error('不受支持的环境');
+        }
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
+    }
+    writeFile(writeContent, filePath) {
+      try {
+        if (typeof $iCloud !== 'undefined') {
+          if (!filePath && fileName) {
+            filePath = '../Scripts/' + fileName;
+          }
+          // QuantumultX
+          let encoder = new TextEncoder();
+          let writeUint8Array = encoder.encode(writeContent);
+
+          if ($iCloud.writeFile(writeUint8Array, filePath)) {
+            console.log('写入文件内容成功！');
+          } else {
+            console.log('写入文件内容失败！');
+          }
+        } else {
+          throw new Error('不受支持的环境');
+        }
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
+    }
+
     writeData() {
       if (this.isNode()) {
-        this.fs = this.fs ? this.fs : require('fs');
-        this.path = this.path ? this.path : require('path');
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
@@ -248,7 +440,14 @@ function Env(name, opts) {
     }
 
     getVal(key) {
-      if (this.isSurge() || this.isLoon()) {
+      if (this.isTrollScript()) {
+        const val = storage.get(key);
+        // TrollScript storage.get returns undefined if not exists
+        // Env convention: return null or string
+        if (val === undefined) return null;
+        // storage.get auto-deserializes, but Env expects string
+        return typeof val === 'string' ? val : JSON.stringify(val);
+      } else if (this.isSurge() || this.isLoon()) {
         return $persistentStore.read(key);
       } else if (this.isQuanX()) {
         return $prefs.valueForKey(key);
@@ -261,7 +460,14 @@ function Env(name, opts) {
     }
 
     setVal(val, key) {
-      if (this.isSurge() || this.isLoon()) {
+      if (this.isTrollScript()) {
+        if (val === null || val === undefined || val === '') {
+          storage.remove(key);
+        } else {
+          storage.set(key, val);
+        }
+        return true;
+      } else if (this.isSurge() || this.isLoon()) {
         return $persistentStore.write(val, key);
       } else if (this.isQuanX()) {
         return $prefs.setValueForKey(val, key);
@@ -287,75 +493,71 @@ function Env(name, opts) {
       }
     }
 
-    get(opts, callback = () => {}) {
+    /**
+     * 统一的 HTTP 请求方法，get/post 均通过此方法实现
+     * @param {string} method 请求方法 (get/post/put/delete/patch/head)
+     * @param {object} opts 请求参数
+     * @param {function} callback 回调函数
+     */
+    _request(method, opts, callback = () => {}) {
+      // 清理请求头
       if (opts.headers) {
-        delete opts.headers['Content-Type'];
+        delete opts.headers['Host'];
         delete opts.headers['Content-Length'];
-      }
-      if (this.isSurge() || this.isLoon()) {
-        if (this.isSurge() && this.isNeedRewrite) {
-          opts.headers = opts.headers || {};
-          Object.assign(opts.headers, { 'X-Surge-Skip-Scripting': false });
+        delete opts.headers['host'];
+        delete opts.headers['content-length'];
+        if (method === 'get') {
+          delete opts.headers['Content-Type'];
+          delete opts.headers['content-type'];
         }
-        $httpClient.get(opts, (err, resp, body) => {
-          if (!err && resp) {
-            resp.body = body;
-            resp.statusCode = resp.status;
+      }
+      if (this.isTrollScript()) {
+        (async () => {
+          try {
+            const tsOpts = { ...opts };
+            if (opts.headers) tsOpts.headers = opts.headers;
+            if (opts.body) {
+              tsOpts.body = typeof opts.body === 'object' ? JSON.stringify(opts.body) : opts.body;
+            }
+            if (opts.timeout) tsOpts.timeout = Math.ceil(opts.timeout / 1000);
+            if (opts.insecure !== undefined) tsOpts.insecure = opts.insecure;
+            const methodUpper = method.toUpperCase();
+            let response;
+            switch (methodUpper) {
+              case 'GET':
+                response = await http.get(opts.url, tsOpts);
+                break;
+              case 'PUT':
+                response = await http.put(opts.url, tsOpts);
+                break;
+              case 'DELETE':
+                response = await http.delete(opts.url, tsOpts);
+                break;
+              case 'PATCH':
+                response = await http.patch(opts.url, tsOpts);
+                break;
+              case 'HEAD':
+                response = await http.head(opts.url, tsOpts);
+                break;
+              default:
+                response = await http.post(opts.url, tsOpts);
+            }
+            if (response.success) {
+              const body = response.data || '';
+              callback(null, {
+                status: response.status,
+                statusCode: response.status,
+                headers: response.headers || {},
+                body: body,
+              }, body);
+            } else {
+              callback(response.error || 'Request failed', null, '');
+            }
+          } catch (e) {
+            callback(e.message || e, null, '');
           }
-          callback(err, resp, body);
-        });
-      } else if (this.isQuanX()) {
-        if (this.isNeedRewrite) {
-          opts.opts = opts.opts || {};
-          Object.assign(opts.opts, { hints: false });
-        }
-        $task.fetch(opts).then(
-          (resp) => {
-            const { statusCode: status, statusCode, headers, body } = resp;
-            callback(null, { status, statusCode, headers, body }, body);
-          },
-          (err) => callback(err)
-        );
-      } else if (this.isNode()) {
-        this.initGotEnv(opts);
-        this.got(opts)
-          .on('redirect', (resp, nextOpts) => {
-            try {
-              if (resp.headers['set-cookie']) {
-                const ck = resp.headers['set-cookie']
-                  .map(this.ckTough.Cookie.parse)
-                  .toString();
-                if (ck) {
-                  this.ckJar.setCookieSync(ck, null);
-                }
-                nextOpts.cookieJar = this.ckJar;
-              }
-            } catch (e) {
-              this.logErr(e);
-            }
-            // this.ckJar.setCookieSync(resp.headers['set-cookie'].map(Cookie.parse).toString())
-          })
-          .then(
-            (resp) => {
-              const { statusCode: status, statusCode, headers, body } = resp;
-              callback(null, { status, statusCode, headers, body }, body);
-            },
-            (err) => {
-              const { message: error, response: resp } = err;
-              callback(error, resp, resp && resp.body);
-            }
-          );
-      }
-    }
-
-    post(opts, callback = () => {}) {
-      const method = opts.method ? opts.method.toLocaleLowerCase() : 'post';
-      // 如果指定了请求体, 但没指定`Content-Type`, 则自动生成
-      // if (opts.body && // opts.headers && !opts.headers['Content-Type']) {
-      opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      //  }
-      if (opts.headers) delete opts.headers['Content-Length'];
-      if (this.isSurge() || this.isLoon()) {
+        })();
+      } else if (this.isSurge() || this.isLoon()) {
         if (this.isSurge() && this.isNeedRewrite) {
           opts.headers = opts.headers || {};
           Object.assign(opts.headers, { 'X-Surge-Skip-Scripting': false });
@@ -375,15 +577,43 @@ function Env(name, opts) {
         }
         $task.fetch(opts).then(
           (resp) => {
-            const { statusCode: status, statusCode, headers, body } = resp;
-            callback(null, { status, statusCode, headers, body }, body);
+            const {
+              statusCode: status,
+              statusCode,
+              headers,
+              body,
+              bodyBytes,
+            } = resp;
+            callback(
+              null,
+              { status, statusCode, headers, body, bodyBytes },
+              body
+            );
           },
           (err) => callback(err)
         );
       } else if (this.isNode()) {
         this.initGotEnv(opts);
         const { url, ..._opts } = opts;
-        this.got[method](url, _opts).then(
+        const gotCall = method === 'get' ? this.got(opts) : this.got[method](url, _opts);
+        if (method === 'get') {
+          gotCall.on('redirect', (resp, nextOpts) => {
+            try {
+              if (resp.headers['set-cookie']) {
+                const ck = resp.headers['set-cookie']
+                  .map(this.ckTough.Cookie.parse)
+                  .toString();
+                if (ck) {
+                  this.ckJar.setCookieSync(ck, null);
+                }
+                nextOpts.cookieJar = this.ckJar;
+              }
+            } catch (e) {
+              this.logErr(e);
+            }
+          });
+        }
+        gotCall.then(
           (resp) => {
             const { statusCode: status, statusCode, headers, body } = resp;
             callback(null, { status, statusCode, headers, body }, body);
@@ -395,6 +625,15 @@ function Env(name, opts) {
         );
       }
     }
+
+    get(opts, callback = () => {}) {
+      return this._request('get', opts, callback);
+    }
+
+    post(opts, callback = () => {}) {
+      const method = opts.method ? opts.method.toLocaleLowerCase() : 'post';
+      return this._request(method, opts, callback);
+    }
     /**
      *
      * 示例:$.time('yyyy-MM-dd qq HH:mm:ss.S')
@@ -405,30 +644,54 @@ function Env(name, opts) {
      * @param {number} 可选: 根据指定时间戳返回格式化日期
      *
      */
-    time(fmt, ts = null) {
-      const date = ts ? new Date(ts) : new Date();
-      let o = {
-        'M+': date.getMonth() + 1,
-        'd+': date.getDate(),
-        'H+': date.getHours(),
-        'm+': date.getMinutes(),
-        's+': date.getSeconds(),
-        'q+': Math.floor((date.getMonth() + 3) / 3),
+    time(fmt, ts) {
+      var date;
+
+      if (ts instanceof Date) {
+        date = ts;
+      } else if (ts !== undefined && ts !== null) {
+        date = new Date(ts);
+      } else {
+        date = new Date();
+      }
+
+      function pad2(num) {
+        num = String(num);
+        return num.length < 2 ? '0' + num : num;
+      }
+
+      var map = {
+        M: date.getMonth() + 1,
+        d: date.getDate(),
+        H: date.getHours(),
+        m: date.getMinutes(),
+        s: date.getSeconds(),
+        q: Math.floor((date.getMonth() + 3) / 3),
         S: date.getMilliseconds(),
       };
-      if (/(y+)/.test(fmt))
-        fmt = fmt.replace(
-          RegExp.$1,
-          (date.getFullYear() + '').substr(4 - RegExp.$1.length)
-        );
-      for (let k in o)
-        if (new RegExp('(' + k + ')').test(fmt))
-          fmt = fmt.replace(
-            RegExp.$1,
-            RegExp.$1.length == 1
-              ? o[k]
-              : ('00' + o[k]).substr(('' + o[k]).length)
-          );
+
+      // 年份
+      fmt = fmt.replace(/y{1,4}/g, function (match) {
+        var year = String(date.getFullYear());
+        return match.length === 4 ? year : year.slice(4 - match.length);
+      });
+
+      // 其它
+      fmt = fmt.replace(/M{1,2}|d{1,2}|H{1,2}|m{1,2}|s{1,2}|q{1,2}|S/g, function (match) {
+        var key = match.charAt(0);
+        var val = map[key];
+
+        if (key === 'S') {
+          return String(val);
+        }
+
+        if (match.length === 1) {
+          return String(val);
+        }
+
+        return pad2(val);
+      });
+
       return fmt;
     }
 
@@ -480,7 +743,12 @@ function Env(name, opts) {
         }
       };
       if (!this.isMute) {
-        if (this.isSurge() || this.isLoon()) {
+        if (this.isTrollScript()) {
+          try {
+            const body = [subt, desc].filter(Boolean).join('\n');
+            notification.send(title, body || ' ');
+          } catch (e) {}
+        } else if (this.isSurge() || this.isLoon()) {
           $notification.post(title, subt, desc, toEnvOpts(opts));
         } else if (this.isQuanX()) {
           $notify(title, subt, desc, toEnvOpts(opts));
@@ -530,6 +798,36 @@ function Env(name, opts) {
       this.log();
       if (this.isSurge() || this.isQuanX() || this.isLoon()) {
         $done(val);
+      }
+      if (this.isNode()) {
+        process.exit(0);
+      }
+      // TrollScript: 脚本自然结束即可，无需特殊处理
+    }
+
+    isJWT(token) {
+      return token.split('.').length === 3;
+    }
+
+    decodeJWT(token) {
+      if (!this.isJWT(token)) {
+        throw new Error('Token is not a valid JWT.');
+      }
+
+      const [header, payload, signature] = token.split('.');
+      const decodeBase64 = (base64) =>
+        JSON.parse(this.Buffer.from(base64, 'base64').toString('utf-8'));
+      try {
+        const decodedHeader = decodeBase64(header);
+        const decodedPayload = decodeBase64(payload);
+        return {
+          header: decodedHeader,
+          payload: decodedPayload,
+          signature, // 签名部分通常无法解码，除非验证密钥
+        };
+      } catch (error) {
+        console.log(error.message);
+        throw new Error('Failed to decode JWT: ' + error.message);
       }
     }
   })(name, opts);
