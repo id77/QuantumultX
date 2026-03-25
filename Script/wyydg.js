@@ -23,7 +23,7 @@ if ($.isNode()) {
 
   const res = await 点歌(params);
   $.done({
-    status: 'HTTP/1.1 200',
+    status: $.isQuanX() ? 'HTTP/1.1 200' : 200,
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
     },
