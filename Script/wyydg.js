@@ -22,13 +22,24 @@ if ($.isNode()) {
   }
 
   const res = await 点歌(params);
-  $.done({
-    status: $.isQuanX() ? 'HTTP/1.1 200' : 200,
-    headers: {
-      'Content-Type': 'application/json;charset=utf-8',
-    },
-    body: res,
-  });
+  if ($.isQuanX())
+    $.done({
+      status: 'HTTP/1.1 200',
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+      },
+      body: res,
+    });
+  else
+    $.done({
+      response: {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8',
+        },
+        body: res,
+      },
+    });
 })()
   .catch((e) => $.logErr(e))
   .finally(() => $.done());
