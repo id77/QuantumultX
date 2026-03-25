@@ -618,7 +618,7 @@ function getNEHeaders(cookies) {
     Origin: 'orpheus://orpheus',
     // 'mconfig-info':
     //   '{"IuRPVVmc3WWul9fT":{"version":733184,"appver":"3.1.3.203419"}}',
-    'MConfig-Info': {
+    'MConfig-Info': JSON.stringify({
       IuRPVVmc3WWul9fT: {
         version: 104882176,
         appver: cookies.appver || '9.4.55',
@@ -628,7 +628,7 @@ function getNEHeaders(cookies) {
         appver: cookies.appver || '9.4.55',
       },
       tPJJnts2H31BZXmp: { version: 4460544, appver: '2.0.30' },
-    },
+    }),
   };
 }
 
