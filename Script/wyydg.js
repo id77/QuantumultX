@@ -355,7 +355,7 @@ async function 获取歌词(songId) {
           if (result.lrc && result.lrc.lyric) {
             let lyric = result.lrc.lyric;
             // 去掉时间戳 [00:00.00] 格式
-            lyric = lyric.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '');
+            // lyric = lyric.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '');
             // 按行分割，过滤空行，重新组合
             const lines = lyric
               .split('\n')
