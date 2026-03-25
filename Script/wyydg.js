@@ -14,10 +14,10 @@ if ($.isNode()) {
   let params = {
     name: '人间共鸣', // 搜索关键词
   };
-  if ($.isQuanX() && $request && $request.method === 'POST') {
+  if (!$.isNode() && $request && $request.method === 'POST') {
     params = JSON.parse($request.body);
   }
-  if ($.isQuanX() && $request && $request.method === 'GET') {
+  if (!$.isNode() && $request && $request.method === 'GET') {
     params = parseQueryString($request.url);
   }
 
