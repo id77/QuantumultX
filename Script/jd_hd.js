@@ -228,6 +228,10 @@ if ($request.url.includes('cc.zgg')) {
     /"effectStartTime":".+?",/g,
     '"effectStartTime":"2026-03-26 10:00:00",',
   );
+  html = html.replace(
+    /"obtainStartTime":".+?",/g,
+    '"obtainStartTime":"2026-03-26 10:00:00",',
+  );
 }
 
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
