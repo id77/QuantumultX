@@ -221,6 +221,14 @@ if ($request.url.includes('m=yunc_ticket&')) {
   html = html.replace(/opg:"1"/, 'opg:"0"');
   html = html.replace(/"open2":\d+/g, '"open2":0');
 }
+if ($request.url.includes('cc.zgg')) {
+  html = html.replace(/NOT_PROGRESS/g, 'IN_PROGRESS');
+  html = html.replace(/"canObtained":false/g, '"canObtained":true');
+  html = html.replace(
+    /"effectStartTime":".+?",/g,
+    '"effectStartTime":"2026-03-26 10:00:00",',
+  );
+}
 
 const couponId = html.match(/"batchId":"(\d+)"/)?.[1];
 
