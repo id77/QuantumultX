@@ -253,46 +253,6 @@
       ]
     },
     {
-      "id": "id77_goofish",
-      "name": "闲鱼",
-      "keys": [
-        "id77_goofishDomain",
-        "id77_goofishCookieId",
-        "id77_goofishLoginUserName",
-        "id77_goofishLoginPassword"
-      ],
-      "settings": [
-        {
-          "id": "id77_goofishDomain",
-          "name": "应用地址",
-          "val": "",
-          "type": "text",
-          "desc": "闲鱼应用地址"
-        },
-        {
-          "id": "id77_goofishCookieId",
-          "name": "cookieId",
-          "val": "",
-          "type": "text",
-          "desc": "cookieId/账号ID"
-        },
-        {
-          "id": "id77_goofishLoginUserName",
-          "name": "用户名",
-          "val": "",
-          "type": "text",
-          "desc": "登录用户名"
-        },
-        {
-          "id": "id77_goofishLoginPassword",
-          "name": "密码",
-          "val": "",
-          "type": "text",
-          "desc": "登录密码"
-        }
-      ]
-    },
-    {
       "id": "id77_ocr",
       "name": "OCR",
       "keys": ["id77_ocr_api", "id77_ocr_path", "id77_ocr_rules"],
