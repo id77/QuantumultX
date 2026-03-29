@@ -150,7 +150,7 @@ async function handlePage() {
 
   // 调试模式: 是否每次都获取新的页面
   const isDebugWeb = [true, 'true'].includes(
-    $.getData('@chavy_boxjs_userCfgs.isDebugWeb')
+    $.getData('@chavy_boxjs_userCfgs.isDebugWeb'),
   );
   const debugger_web = $.getData('@chavy_boxjs_userCfgs.debugger_web');
   const cache = $.getJson($.KEY_web_cache, null);
@@ -198,7 +198,7 @@ async function handlePage() {
           }
         },
         // 如果获取页面源码失败, 则从持久化仓库中获取
-        () => ($.html = getcache())
+        () => ($.html = getcache()),
       );
     }
   }
@@ -217,7 +217,7 @@ async function handlePage() {
    */
   $.html = $.html.replace(
     'boxServerData: null',
-    'boxServerData:' + JSON.stringify(boxdata)
+    'boxServerData:' + JSON.stringify(boxdata),
   );
 
   // 调试模式支持 vue Devtools (只有在同时开启调试模式和指定了调试地址才生效)
@@ -234,7 +234,7 @@ async function handleQuery() {
   const referer = $request.headers.referer || $request.headers.Referer;
   if (!/^https?:\/\/(.+\.)?boxjs\.(com|net)\//.test(referer)) {
     const isMuteQueryAlert = [true, 'true'].includes(
-      $.getData('@chavy_boxjs_userCfgs.isMuteQueryAlert')
+      $.getData('@chavy_boxjs_userCfgs.isMuteQueryAlert'),
     );
 
     if (!isMuteQueryAlert) {
@@ -249,7 +249,7 @@ async function handleQuery() {
           '请注意数据安全, 你可以: ',
           '1. 在 BoxJs 的脚本日志中查看详情',
           '2. 在 BoxJs 的页面 (侧栏) 中 "不显示查询警告"',
-        ].join('\n')
+        ].join('\n'),
       );
 
       // 还原静默状态
@@ -262,7 +262,7 @@ async function handleQuery() {
         '❗️❗️❗️ 发现有脚本或人正在读取你的数据 ❗️❗️❗️',
         JSON.stringify($request),
         '',
-      ].join('\n')
+      ].join('\n'),
     );
   }
 
@@ -644,7 +644,7 @@ function getVersions() {
         $.json = {};
       }
     },
-    () => ($.json = {})
+    () => ($.json = {}),
   );
 }
 
@@ -839,7 +839,7 @@ async function apiRevertGlobalBak() {
     const isNull = (val) =>
       [undefined, null, 'null', 'undefined', ''].includes(val);
     Object.keys(datas).forEach((datkey) =>
-      $.setData(isNull(datas[datkey]) ? '' : `${datas[datkey]}`, datkey)
+      $.setData(isNull(datas[datkey]) ? '' : `${datas[datkey]}`, datkey),
     );
   }
   const boxdata = getBoxData();
@@ -949,7 +949,7 @@ async function apiDownloadFile() {
             success: false,
             error: `请求失败: ${error}`,
           });
-        }
+        },
       );
     } catch (err) {
       failCount++;
@@ -1005,7 +1005,7 @@ async function apiRunScript() {
   ) {
     const runOpts = { timeout: opts.timeout };
     await $.runScript(script_text, runOpts).then(
-      (resp) => ($.json = JSON.parse(resp))
+      (resp) => ($.json = JSON.parse(resp)),
     );
   } else {
     const result = await new Promise((resolve) => {
@@ -1033,7 +1033,7 @@ async function apiRunScript() {
         }
       } else {
         $eval_env.cached_logs.push(
-          `获取脚本失败，访问  ${opts.url} 获取结果失败，请检查脚本地址是否正确，或文件是否存在。`
+          `获取脚本失败，访问  ${opts.url} 获取结果失败，请检查脚本地址是否正确，或文件是否存在。`,
         );
         resolve();
       }
@@ -1247,7 +1247,7 @@ function updateCurSesssions(appId, data) {
   const curSessionId = curSessions[appId];
   if (!curSessionId) {
     console.log(
-      `[updateCurSesssions] 跳过! 应用 [${appId}] 找不到当前会话, 请先应用会话!`
+      `[updateCurSesssions] 跳过! 应用 [${appId}] 找不到当前会话, 请先应用会话!`,
     );
     return;
   }
@@ -1256,7 +1256,7 @@ function updateCurSesssions(appId, data) {
   const session = sessions.find((session) => session.id === curSessionId);
   if (!session) {
     console.log(
-      `[updateCurSesssions] 跳过! 应用 [${appId}] 找不到当前会话, 请先应用会话!`
+      `[updateCurSesssions] 跳过! 应用 [${appId}] 找不到当前会话, 请先应用会话!`,
     );
     return;
   }
@@ -1288,7 +1288,7 @@ function getBaseDoneHeaders(mixHeaders = {}) {
       'Access-Control-Allow-Headers':
         'Origin, X-Requested-With, Content-Type, Accept',
     },
-    mixHeaders
+    mixHeaders,
   );
 }
 
@@ -1483,7 +1483,7 @@ function Env(name, opts) {
         let httpApi = this.getData('@chavy_boxjs_userCfgs.httpApi');
         httpApi = httpApi ? httpApi.replace(/\n/g, '').trim() : httpApi;
         let httpApi_timeout = this.getData(
-          '@chavy_boxjs_userCfgs.httpApi_timeout'
+          '@chavy_boxjs_userCfgs.httpApi_timeout',
         );
         httpApi_timeout = httpApi_timeout ? httpApi_timeout * 1 : 20;
         httpApi_timeout =
@@ -1514,7 +1514,7 @@ function Env(name, opts) {
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
-          this.dataFile
+          this.dataFile,
         );
         const isCurDirDataFile = this.fs.existsSync(curDirDataFilePath);
         const isRootDirDataFile =
@@ -1594,7 +1594,7 @@ function Env(name, opts) {
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
-          this.dataFile
+          this.dataFile,
         );
         const isCurDirDataFile = this.fs.existsSync(curDirDataFilePath);
         const isRootDirDataFile =
@@ -1632,7 +1632,7 @@ function Env(name, opts) {
             Object(a[c]) === a[c]
               ? a[c]
               : (a[c] = Math.abs(path[i + 1]) >> 0 === +path[i + 1] ? [] : {}),
-          obj
+          obj,
         )[path[path.length - 1]] = value;
       return obj;
     }
@@ -1796,10 +1796,10 @@ function Env(name, opts) {
                 null,
                 { status, statusCode, headers, body, bodyBytes },
                 body,
-                bodyBytes
+                bodyBytes,
               );
             },
-            (err) => callback((err && err.error) || 'UndefinedError')
+            (err) => callback((err && err.error) || 'UndefinedError'),
           );
           break;
         case 'Node.js':
@@ -1834,7 +1834,7 @@ function Env(name, opts) {
                 callback(
                   null,
                   { status, statusCode, headers, rawBody, body },
-                  body
+                  body,
                 );
               },
               (err) => {
@@ -1842,9 +1842,9 @@ function Env(name, opts) {
                 callback(
                   error,
                   resp,
-                  resp && iconv.decode(resp.rawBody, this.encoding)
+                  resp && iconv.decode(resp.rawBody, this.encoding),
                 );
-              }
+              },
             );
           break;
       }
@@ -1921,10 +1921,10 @@ function Env(name, opts) {
                 null,
                 { status, statusCode, headers, body, bodyBytes },
                 body,
-                bodyBytes
+                bodyBytes,
               );
             },
-            (err) => callback((err && err.error) || 'UndefinedError')
+            (err) => callback((err && err.error) || 'UndefinedError'),
           );
           break;
         case 'Node.js':
@@ -1938,7 +1938,7 @@ function Env(name, opts) {
               callback(
                 null,
                 { status, statusCode, headers, rawBody, body },
-                body
+                body,
               );
             },
             (err) => {
@@ -1946,9 +1946,9 @@ function Env(name, opts) {
               callback(
                 error,
                 resp,
-                resp && iconv.decode(resp.rawBody, this.encoding)
+                resp && iconv.decode(resp.rawBody, this.encoding),
               );
-            }
+            },
           );
           break;
       }
@@ -1977,7 +1977,7 @@ function Env(name, opts) {
       if (/(y+)/.test(fmt))
         fmt = fmt.replace(
           RegExp.$1,
-          (date.getFullYear() + '').substr(4 - RegExp.$1.length)
+          (date.getFullYear() + '').substr(4 - RegExp.$1.length),
         );
       for (let k in o)
         if (new RegExp('(' + k + ')').test(fmt))
@@ -1985,7 +1985,7 @@ function Env(name, opts) {
             RegExp.$1,
             RegExp.$1.length == 1
               ? o[k]
-              : ('00' + o[k]).substr(('' + o[k]).length)
+              : ('00' + o[k]).substr(('' + o[k]).length),
           );
       return fmt;
     }
@@ -2207,7 +2207,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.debug}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -2220,7 +2220,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.info}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -2233,7 +2233,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.warn}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -2246,7 +2246,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.error}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -2274,7 +2274,7 @@ function Env(name, opts) {
             `❗️${this.name}, 错误!`,
             msg,
             typeof err.message !== 'undefined' ? err.message : err,
-            err.stack
+            err.stack,
           );
           break;
       }
