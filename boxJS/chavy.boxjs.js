@@ -184,6 +184,8 @@ async function handlePage() {
     if ($.needICloudHtml) {
       const filePath = `chavy.boxjs.html`;
       $.html = await $.readFile(filePath);
+      // const cache = { version: $.version, cache: $.html };
+      // $.setJson(cache, $.KEY_web_cache);
     } else {
       await $.http.get($.web).then(
         (resp) => {
@@ -1342,17 +1344,6 @@ function Env(name, opts) {
         sender = this.post;
       }
 
-      const delayPromise = (promise, delay = 1000) => {
-        return Promise.race([
-          promise,
-          new Promise((resolve, reject) => {
-            setTimeout(() => {
-              reject(new Error('请求超时'));
-            }, delay);
-          }),
-        ]);
-      };
-
       const call = new Promise((resolve, reject) => {
         sender.call(this, opts, (err, resp, body) => {
           if (err) reject(err);
@@ -1360,7 +1351,19 @@ function Env(name, opts) {
         });
       });
 
-      return opts.timeout ? delayPromise(call, opts.timeout) : call;
+      if (opts.timeout) {
+        let timer;
+        return Promise.race([
+          call.finally(() => clearTimeout(timer)),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('请求超时')),
+              opts.timeout,
+            );
+          }),
+        ]);
+      }
+      return call;
     }
 
     get(opts) {
@@ -1388,12 +1391,131 @@ function Env(name, opts) {
       this.dataFile = 'box.dat';
       this.logs = [];
       this.isMute = false;
+      this.noLogKey = opts.noLogKey || '';
+      this.noLog = opts.noLog;
       this.isNeedRewrite = false;
       this.logSeparator = '\n';
       this.encoding = 'utf-8';
       this.startTime = new Date().getTime();
       Object.assign(this, opts);
       this.log('', `🔔${this.name}, 开始!`);
+
+      if (this.isNode()) {
+        // Node.js 原生模块
+        this.Buffer = Buffer;
+        this.fs = require('fs');
+        this.path = require('path');
+      } else {
+        // console.log(`创建 Buffer Polyfill`);
+        this.Buffer = this.createBufferPolyfill(); // 创建 Buffer Polyfill
+      }
+    }
+
+    // Buffer Polyfill（适用于 QuanX / Surge / Loon / TrollScript 等无原生 Buffer 的环境）
+    createBufferPolyfill() {
+      return class BufferPolyfill extends Uint8Array {
+        /**
+         * 判断是否为 BufferPolyfill 实例
+         */
+        static isBuffer(obj) {
+          return obj instanceof BufferPolyfill;
+        }
+
+        /**
+         * 创建指定大小的零填充 Buffer
+         */
+        static alloc(size, fill = 0) {
+          const buf = new BufferPolyfill(size);
+          if (fill !== 0) buf.fill(fill);
+          return buf;
+        }
+
+        /**
+         * 拼接多个 Buffer
+         */
+        static concat(list, totalLength) {
+          if (!totalLength) {
+            totalLength = list.reduce((acc, buf) => acc + buf.length, 0);
+          }
+          const result = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const buf of list) {
+            result.set(buf, offset);
+            offset += buf.length;
+          }
+          return new BufferPolyfill(result);
+        }
+
+        /**
+         * 从多种类型创建 Buffer
+         * 支持: string (base64/utf8/hex), Array, Uint8Array, ArrayBuffer
+         */
+        static from(value, encoding) {
+          // 字符串
+          if (typeof value === 'string') {
+            if (encoding === 'base64' || encoding === 'base64url') {
+              // 处理 base64url 编码 (JWT 格式)
+              let fixedBase64 = value.replace(/-/g, '+').replace(/_/g, '/');
+              while (fixedBase64.length % 4) fixedBase64 += '=';
+              try {
+                const binaryStr = atob(fixedBase64);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                  bytes[i] = binaryStr.charCodeAt(i);
+                }
+                return new BufferPolyfill(bytes);
+              } catch (e) {
+                console.log('Base64 解码错误:', e.message);
+                throw e;
+              }
+            } else if (encoding === 'hex') {
+              const bytes = new Uint8Array(value.length / 2);
+              for (let i = 0; i < value.length; i += 2) {
+                bytes[i / 2] = parseInt(value.substring(i, i + 2), 16);
+              }
+              return new BufferPolyfill(bytes);
+            } else {
+              // 默认 utf-8
+              return new BufferPolyfill(new TextEncoder().encode(value));
+            }
+          }
+          // Array / Uint8Array / ArrayBuffer
+          if (Array.isArray(value)) {
+            return new BufferPolyfill(new Uint8Array(value));
+          }
+          if (value instanceof ArrayBuffer) {
+            return new BufferPolyfill(new Uint8Array(value));
+          }
+          if (value instanceof Uint8Array || value instanceof BufferPolyfill) {
+            return new BufferPolyfill(value);
+          }
+          throw new Error('BufferPolyfill.from: unsupported input type');
+        }
+
+        /**
+         * 转换为指定编码的字符串
+         * 支持: base64 / utf8 / hex
+         */
+        toString(encoding = 'utf-8') {
+          if (encoding === 'base64') {
+            let binaryStr = '';
+            for (let i = 0; i < this.length; i++) {
+              binaryStr += String.fromCharCode(this[i]);
+            }
+            return btoa(binaryStr);
+          } else if (encoding === 'hex') {
+            let hex = '';
+            for (let i = 0; i < this.length; i++) {
+              hex += this[i].toString(16).padStart(2, '0');
+            }
+            return hex;
+          } else if (['utf8', 'utf-8'].includes(encoding)) {
+            return new TextDecoder().decode(this);
+          }
+          // 回退到 utf-8
+          return new TextDecoder().decode(this);
+        }
+      };
     }
 
     getEnv() {
@@ -1405,6 +1527,7 @@ function Env(name, opts) {
       if ('undefined' !== typeof $task) return 'Quantumult X';
       if ('undefined' !== typeof $loon) return 'Loon';
       if ('undefined' !== typeof $rocket) return 'Shadowrocket';
+      if ('undefined' !== typeof TrollScriptPlugin) return 'TrollScript';
     }
 
     isNode() {
@@ -1413,6 +1536,10 @@ function Env(name, opts) {
 
     isQuanX() {
       return 'Quantumult X' === this.getEnv();
+    }
+
+    isTrollScript() {
+      return 'TrollScript' === this.getEnv();
     }
 
     isSurge() {
@@ -1452,8 +1579,10 @@ function Env(name, opts) {
       const val = this.getData(key);
       if (val) {
         try {
-          json = JSON.parse(this.getData(key));
-        } catch {}
+          json = JSON.parse(val);
+        } catch (e) {
+          this.logErr(e);
+        }
       }
       return json;
     }
@@ -1461,7 +1590,8 @@ function Env(name, opts) {
     setJson(val, key) {
       try {
         return this.setData(JSON.stringify(val), key);
-      } catch {
+      } catch (e) {
+        this.logErr(e);
         return false;
       }
     }
@@ -1509,8 +1639,6 @@ function Env(name, opts) {
 
     loadData() {
       if (this.isNode()) {
-        this.fs = this.fs ? this.fs : require('fs');
-        this.path = this.path ? this.path : require('path');
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
@@ -1535,7 +1663,7 @@ function Env(name, opts) {
     readFile(filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          if (!filePath) {
+          if (!filePath && fileName) {
             filePath = '../Scripts/' + fileName;
           }
           // QuantumultX
@@ -1550,7 +1678,9 @@ function Env(name, opts) {
           }
         } else if (this.isNode()) {
           // Node.js
-          const filePath = __dirname + '/' + fileName;
+          if (!filePath && fileName) {
+            filePath = __dirname + '/' + fileName;
+          }
           const fs = require('fs');
           const data = fs.readFileSync(filePath, 'utf8');
           return data;
@@ -1562,11 +1692,10 @@ function Env(name, opts) {
         return null;
       }
     }
-
     writeFile(writeContent, filePath) {
       try {
         if (typeof $iCloud !== 'undefined') {
-          if (!filePath) {
+          if (!filePath && fileName) {
             filePath = '../Scripts/' + fileName;
           }
           // QuantumultX
@@ -1589,8 +1718,6 @@ function Env(name, opts) {
 
     writeData() {
       if (this.isNode()) {
-        this.fs = this.fs ? this.fs : require('fs');
-        this.path = this.path ? this.path : require('path');
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
@@ -1682,6 +1809,13 @@ function Env(name, opts) {
 
     getVal(key) {
       switch (this.getEnv()) {
+        case 'TrollScript':
+          const val = storage.get(key);
+          // TrollScript storage.get returns undefined if not exists
+          // Env convention: return null or string
+          if (val === undefined) return null;
+          // storage.get auto-deserializes, but Env expects string
+          return typeof val === 'string' ? val : JSON.stringify(val);
         case 'Surge':
         case 'Loon':
         case 'Stash':
@@ -1699,6 +1833,13 @@ function Env(name, opts) {
 
     setVal(val, key) {
       switch (this.getEnv()) {
+        case 'TrollScript':
+          if (val === null || val === undefined || val === '') {
+            storage.remove(key);
+          } else {
+            storage.set(key, val);
+          }
+          return true;
         case 'Surge':
         case 'Loon':
         case 'Stash':
@@ -1735,19 +1876,32 @@ function Env(name, opts) {
       }
     }
 
-    get(request, callback = () => {}) {
+    /**
+     * 统一的 HTTP 请求方法，get/post 均通过此方法实现
+     * @param {string} method 请求方法 (get/post/put/delete/patch/head)
+     * @param {object} request 请求参数
+     * @param {function} callback 回调函数
+     */
+    _request(method, request, callback = () => {}) {
+      // 清理请求头
       if (request.headers) {
-        delete request.headers['Content-Type'];
         delete request.headers['Content-Length'];
         delete request.headers['Host'];
         // HTTP/2 全是小写
-        delete request.headers['content-type'];
         delete request.headers['content-length'];
         delete request.headers['host'];
+
+        if (method === 'get') {
+          delete request.headers['Content-Type'];
+          // HTTP/2 全是小写
+          delete request.headers['content-type'];
+        }
       }
+
       if (request.params) {
         request.url += '?' + this.queryStr(request.params);
       }
+
       // followRedirect 禁止重定向
       if (
         typeof request.followRedirect !== 'undefined' &&
@@ -1759,131 +1913,46 @@ function Env(name, opts) {
             ? (request['opts']['redirection'] = false)
             : (request.opts = { redirection: false }); // Quantumult X
       }
+
       switch (this.getEnv()) {
-        case 'Surge':
-        case 'Loon':
-        case 'Stash':
-        case 'Shadowrocket':
-        default:
-          if (this.isSurge() && this.isNeedRewrite) {
-            request.headers = request.headers || {};
-            Object.assign(request.headers, { 'X-Surge-Skip-Scripting': false });
-          }
-          $httpClient.get(request, (err, resp, body) => {
-            if (!err && resp) {
-              resp.body = body;
-              resp.statusCode = resp.status ? resp.status : resp.statusCode;
-              resp.status = resp.statusCode;
-            }
-            callback(err, resp, body);
-          });
-          break;
-        case 'Quantumult X':
-          if (this.isNeedRewrite) {
-            request.opts = request.opts || {};
-            Object.assign(request.opts, { hints: false });
-          }
-          $task.fetch(request).then(
-            (resp) => {
-              const {
-                statusCode: status,
-                statusCode,
-                headers,
-                body,
-                bodyBytes,
-              } = resp;
-              callback(
-                null,
-                { status, statusCode, headers, body, bodyBytes },
-                body,
-                bodyBytes,
-              );
-            },
-            (err) => callback((err && err.error) || 'UndefinedError'),
-          );
-          break;
-        case 'Node.js':
-          let iconv = require('iconv-lite');
-          this.initGotEnv(request);
-          this.got(request)
-            .on('redirect', (resp, nextOpts) => {
-              try {
-                if (resp.headers['set-cookie']) {
-                  const ck = resp.headers['set-cookie']
-                    .map(this.ckTough.Cookie.parse)
-                    .toString();
-                  if (ck) {
-                    this.ckJar.setCookieSync(ck, null);
-                  }
-                  nextOpts.cookieJar = this.ckJar;
-                }
-              } catch (e) {
-                this.logErr(e);
+        case 'TrollScript':
+          (async () => {
+            try {
+              const tsOpts = { ...request };
+              if (request.headers) tsOpts.headers = request.headers;
+              if (request.body) {
+                tsOpts.body =
+                  typeof request.body === 'object'
+                    ? JSON.stringify(request.body)
+                    : request.body;
               }
-              // this.ckJar.setCookieSync(resp.headers['set-cookie'].map(Cookie.parse).toString())
-            })
-            .then(
-              (resp) => {
-                const {
-                  statusCode: status,
-                  statusCode,
-                  headers,
-                  rawBody,
-                } = resp;
-                const body = iconv.decode(rawBody, this.encoding);
+              if (request.timeout)
+                tsOpts.timeout = Math.ceil(request.timeout / 1000);
+              if (request.insecure !== undefined)
+                tsOpts.insecure = request.insecure;
+
+              let response = await http.request(tsOpts.url, tsOpts);
+
+              if (response.success) {
+                const body = response.data || '';
                 callback(
                   null,
-                  { status, statusCode, headers, rawBody, body },
+                  {
+                    status: response.status,
+                    statusCode: response.status,
+                    headers: response.headers || {},
+                    body: body,
+                  },
                   body,
                 );
-              },
-              (err) => {
-                const { message: error, response: resp } = err;
-                callback(
-                  error,
-                  resp,
-                  resp && iconv.decode(resp.rawBody, this.encoding),
-                );
-              },
-            );
+              } else {
+                callback(response.error || 'Request failed', null, '');
+              }
+            } catch (e) {
+              callback(e.message || e, null, '');
+            }
+          })();
           break;
-      }
-    }
-
-    post(request, callback = () => {}) {
-      const method = request.method
-        ? request.method.toLocaleLowerCase()
-        : 'post';
-
-      // 如果指定了请求体, 但没指定 `Content-Type`、`content-type`, 则自动生成。
-      if (
-        request.body &&
-        request.headers &&
-        !request.headers['Content-Type'] &&
-        !request.headers['content-type']
-      ) {
-        // HTTP/1、HTTP/2 都支持小写 headers
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-      }
-      // 为避免指定错误 `content-length` 这里删除该属性，由工具端 (HttpClient) 负责重新计算并赋值
-      if (request.headers) {
-        delete request.headers['Content-Length'];
-        delete request.headers['content-length'];
-        delete request.headers['Host'];
-        delete request.headers['host'];
-      }
-      // followRedirect 禁止重定向
-      if (
-        typeof request.followRedirect !== 'undefined' &&
-        !request['followRedirect']
-      ) {
-        if (this.isSurge() || this.isLoon()) request['auto-redirect'] = false; // Surge & Loon
-        if (this.isQuanX())
-          request.opts
-            ? (request['opts']['redirection'] = false)
-            : (request.opts = { redirection: false }); // Quantumult X
-      }
-      switch (this.getEnv()) {
         case 'Surge':
         case 'Loon':
         case 'Stash':
@@ -1953,6 +2022,17 @@ function Env(name, opts) {
           break;
       }
     }
+
+    get(request, callback = () => {}) {
+      return this._request('get', request, callback);
+    }
+
+    post(request, callback = () => {}) {
+      const method = request.method
+        ? request.method.toLocaleLowerCase()
+        : 'post';
+      return this._request(method, request, callback);
+    }
     /**
      *
      * 示例:$.time('yyyy-MM-dd qq HH:mm:ss.S')
@@ -1963,30 +2043,57 @@ function Env(name, opts) {
      * @param {number} 可选: 根据指定时间戳返回格式化日期
      *
      */
-    time(fmt, ts = null) {
-      const date = ts ? new Date(ts) : new Date();
-      let o = {
-        'M+': date.getMonth() + 1,
-        'd+': date.getDate(),
-        'H+': date.getHours(),
-        'm+': date.getMinutes(),
-        's+': date.getSeconds(),
-        'q+': Math.floor((date.getMonth() + 3) / 3),
+    time(fmt, ts) {
+      var date;
+
+      if (ts instanceof Date) {
+        date = ts;
+      } else if (ts !== undefined && ts !== null) {
+        date = new Date(ts);
+      } else {
+        date = new Date();
+      }
+
+      function pad2(num) {
+        num = String(num);
+        return num.length < 2 ? '0' + num : num;
+      }
+
+      var map = {
+        M: date.getMonth() + 1,
+        d: date.getDate(),
+        H: date.getHours(),
+        m: date.getMinutes(),
+        s: date.getSeconds(),
+        q: Math.floor((date.getMonth() + 3) / 3),
         S: date.getMilliseconds(),
       };
-      if (/(y+)/.test(fmt))
-        fmt = fmt.replace(
-          RegExp.$1,
-          (date.getFullYear() + '').substr(4 - RegExp.$1.length),
-        );
-      for (let k in o)
-        if (new RegExp('(' + k + ')').test(fmt))
-          fmt = fmt.replace(
-            RegExp.$1,
-            RegExp.$1.length == 1
-              ? o[k]
-              : ('00' + o[k]).substr(('' + o[k]).length),
-          );
+
+      // 年份
+      fmt = fmt.replace(/y{1,4}/g, function (match) {
+        var year = String(date.getFullYear());
+        return match.length === 4 ? year : year.slice(4 - match.length);
+      });
+
+      // 其它
+      fmt = fmt.replace(
+        /M{1,2}|d{1,2}|H{1,2}|m{1,2}|s{1,2}|q{1,2}|S/g,
+        function (match) {
+          var key = match.charAt(0);
+          var val = map[key];
+
+          if (key === 'S') {
+            return String(val);
+          }
+
+          if (match.length === 1) {
+            return String(val);
+          }
+
+          return pad2(val);
+        },
+      );
+
       return fmt;
     }
 
@@ -2175,6 +2282,12 @@ function Env(name, opts) {
       };
       if (!this.isMute) {
         switch (this.getEnv()) {
+          case 'TrollScript':
+            try {
+              const body = [subt, desc].filter(Boolean).join('\n');
+              notification.send(title, body || ' ');
+            } catch (e) {}
+            break;
           case 'Surge':
           case 'Loon':
           case 'Stash':
@@ -2252,6 +2365,13 @@ function Env(name, opts) {
     }
 
     log(...logs) {
+      if (
+        this.noLog ||
+        (this.noLogKey &&
+          (this.getData(this.noLogKey) || 'N').toLocaleUpperCase() === 'Y')
+      ) {
+        return;
+      }
       if (logs.length > 0) {
         this.logs = [...this.logs, ...logs];
       }
@@ -2299,7 +2419,33 @@ function Env(name, opts) {
           $done(val);
           break;
         case 'Node.js':
-          process.exit(1);
+          process.exit(0);
+      }
+    }
+
+    isJWT(token) {
+      return token.split('.').length === 3;
+    }
+
+    decodeJWT(token) {
+      if (!this.isJWT(token)) {
+        throw new Error('Token is not a valid JWT.');
+      }
+
+      const [header, payload, signature] = token.split('.');
+      const decodeBase64 = (base64) =>
+        JSON.parse(this.Buffer.from(base64, 'base64').toString('utf-8'));
+      try {
+        const decodedHeader = decodeBase64(header);
+        const decodedPayload = decodeBase64(payload);
+        return {
+          header: decodedHeader,
+          payload: decodedPayload,
+          signature, // 签名部分通常无法解码，除非验证密钥
+        };
+      } catch (error) {
+        console.log(error.message);
+        throw new Error('Failed to decode JWT: ' + error.message);
       }
     }
   })(name, opts);
