@@ -1,5 +1,4 @@
 // https://github.com/chavyleung/scripts/blob/master/Env.js
-// prettier-ignore
 function Env(name, opts) {
   class Http {
     constructor(env) {
@@ -80,8 +79,81 @@ function Env(name, opts) {
       }
     }
 
+    getBase64Chars() {
+      return 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    }
+
+    normalizeBase64(base64) {
+      const cleaned = String(base64 || '')
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .replace(/\s+/g, '');
+      return cleaned + '='.repeat((4 - (cleaned.length % 4)) % 4);
+    }
+
+    atobFallback(base64) {
+      const chars = this.getBase64Chars();
+      const normalized = this.normalizeBase64(base64).replace(/=+$/, '');
+      let bits = 0;
+      let bitLength = 0;
+      let out = '';
+
+      for (let i = 0; i < normalized.length; i++) {
+        const val = chars.indexOf(normalized[i]);
+        if (val < 0) continue;
+
+        bits = (bits << 6) | val;
+        bitLength += 6;
+
+        if (bitLength >= 8) {
+          bitLength -= 8;
+          out += String.fromCharCode((bits >> bitLength) & 0xff);
+        }
+      }
+
+      return out;
+    }
+
+    btoaFallback(binary) {
+      const chars = this.getBase64Chars();
+      let out = '';
+      let i = 0;
+
+      while (i < binary.length) {
+        const c1 = binary.charCodeAt(i++) & 0xff;
+        const c2 = i < binary.length ? binary.charCodeAt(i++) & 0xff : NaN;
+        const c3 = i < binary.length ? binary.charCodeAt(i++) & 0xff : NaN;
+
+        const n = (c1 << 16) | ((c2 || 0) << 8) | (c3 || 0);
+        out += chars[(n >> 18) & 63];
+        out += chars[(n >> 12) & 63];
+        out += Number.isNaN(c2) ? '=' : chars[(n >> 6) & 63];
+        out += Number.isNaN(c3) ? '=' : chars[n & 63];
+      }
+
+      return out;
+    }
+
+    atob(base64) {
+      const normalized = this.normalizeBase64(base64);
+      if (typeof atob === 'function') return atob(normalized);
+      if (typeof Buffer !== 'undefined') {
+        return Buffer.from(normalized, 'base64').toString('binary');
+      }
+      return this.atobFallback(normalized);
+    }
+
+    btoa(binary) {
+      if (typeof btoa === 'function') return btoa(binary);
+      if (typeof Buffer !== 'undefined') {
+        return Buffer.from(binary, 'binary').toString('base64');
+      }
+      return this.btoaFallback(binary);
+    }
+
     // Buffer Polyfill（适用于 QuanX / Surge / Loon / TrollScript 等无原生 Buffer 的环境）
     createBufferPolyfill() {
+      const env = this;
       return class BufferPolyfill extends Uint8Array {
         /**
          * 判断是否为 BufferPolyfill 实例
@@ -127,7 +199,7 @@ function Env(name, opts) {
               let fixedBase64 = value.replace(/-/g, '+').replace(/_/g, '/');
               while (fixedBase64.length % 4) fixedBase64 += '=';
               try {
-                const binaryStr = atob(fixedBase64);
+                const binaryStr = env.atob(fixedBase64);
                 const bytes = new Uint8Array(binaryStr.length);
                 for (let i = 0; i < binaryStr.length; i++) {
                   bytes[i] = binaryStr.charCodeAt(i);
@@ -171,7 +243,7 @@ function Env(name, opts) {
             for (let i = 0; i < this.length; i++) {
               binaryStr += String.fromCharCode(this[i]);
             }
-            return btoa(binaryStr);
+            return env.btoa(binaryStr);
           } else if (encoding === 'hex') {
             let hex = '';
             for (let i = 0; i < this.length; i++) {
@@ -185,6 +257,127 @@ function Env(name, opts) {
           return new TextDecoder().decode(this);
         }
       };
+    }
+
+    normalizeBytes(input) {
+      if (!input) return new Uint8Array();
+
+      if (
+        typeof this.Buffer !== 'undefined' &&
+        this.Buffer.isBuffer &&
+        this.Buffer.isBuffer(input)
+      ) {
+        return input; // Buffer 本身也是 Uint8Array
+      }
+
+      if (input instanceof Uint8Array) {
+        return input;
+      }
+
+      if (input instanceof ArrayBuffer) {
+        return new Uint8Array(input);
+      }
+
+      if (ArrayBuffer.isView(input)) {
+        return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+      }
+
+      if (Array.isArray(input)) {
+        return Uint8Array.from(input);
+      }
+
+      return new Uint8Array();
+    }
+
+    bytesToBase64(input) {
+      // Node.js / 支持 Buffer
+      if (typeof this.Buffer !== 'undefined') {
+        const bytes = this.normalizeBytes(input);
+        return this.Buffer.from(
+          bytes.buffer,
+          bytes.byteOffset,
+          bytes.byteLength,
+        ).toString('base64');
+      }
+
+      // 浏览器/QX 回退
+      const bytes = this.normalizeBytes(input);
+      if (!bytes.byteLength) return '';
+
+      let binary = '';
+      const chunkSize = 0x8000;
+
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(
+          null,
+          bytes.subarray(i, i + chunkSize),
+        );
+      }
+
+      return this.btoa(binary);
+    }
+
+    base64ToBytes(base64) {
+      if (!base64) {
+        return typeof this.Buffer !== 'undefined'
+          ? this.Buffer.alloc(0)
+          : new Uint8Array();
+      }
+
+      // Node.js / 支持 Buffer
+      if (typeof this.Buffer !== 'undefined') {
+        return this.Buffer.from(base64, 'base64');
+      }
+
+      // 浏览器/QX 回退
+      const binary = this.atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    cloneBytesValue(value) {
+      if (value == null) return value;
+
+      if (
+        typeof this.Buffer !== 'undefined' &&
+        this.Buffer.isBuffer &&
+        this.Buffer.isBuffer(value)
+      ) {
+        return this.Buffer.from(value);
+      }
+
+      if (value instanceof ArrayBuffer) {
+        return value.slice(0);
+      }
+
+      if (ArrayBuffer.isView(value)) {
+        if (value instanceof Uint8Array) {
+          return new Uint8Array(value);
+        }
+        return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+      }
+
+      return value;
+    }
+
+    cloneRequestPreserveBinary(req) {
+      const cloned = {
+        ...req,
+        headers: req.headers ? { ...req.headers } : req.headers,
+      };
+
+      if ('body' in cloned) {
+        cloned.body = this.cloneBytesValue(cloned.body);
+      }
+
+      if ('bodyBytes' in cloned) {
+        cloned.bodyBytes = this.cloneBytesValue(cloned.bodyBytes);
+      }
+
+      return cloned;
     }
 
     getEnv() {
