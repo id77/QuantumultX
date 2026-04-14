@@ -30,7 +30,7 @@ const IS_FONT = /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(CDN_URL);
           }
 
           console.log(
-            `更新时间字段 ${key} [${timeFormat}]: ${value} -> ${newTime}`
+            `更新时间字段 ${key} [${timeFormat}]: ${value} -> ${newTime}`,
           );
           headersObj[key] = newTime;
         }
@@ -75,7 +75,7 @@ const IS_FONT = /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(CDN_URL);
         await $.writeFile(resp.body, `../cache/${CACHE_KEY}`);
         await $.writeFile(
           JSON.stringify(resp.headers, null, 2),
-          `../cache/${CACHE_KEYANDHEADERS}.txt`
+          `../cache/${CACHE_KEYANDHEADERS}.txt`,
         );
       }
       $.done({
@@ -215,8 +215,32 @@ function getNpmCacheKey(url) {
   // 1. 尝试从 URL 提取
   let m = url.match(/([^\/]+)@([\d.]+).+\.([^\.]+)\?/);
   if (m) return `${m[1]}@${m[2]}.${m[3]}`;
-  // 2. 兜底
-  return url.replace(/https?:\/\//g, '');
+  // 2. 兜底：仅主机名或根路径写入 index.html，其它 pathname 原样保留
+  try {
+    const parsed = new URL(url);
+    let path = parsed.pathname || '/';
+
+    if (path === '/' || path === '') {
+      path += 'index.html';
+    }
+
+    // 查询参数拼到文件名，避免同一路径不同 query 互相覆盖
+    if (parsed.search) {
+      const queryTag = encodeURIComponent(parsed.search.slice(1)).replace(
+        /%/g,
+        '_',
+      );
+      path = path.replace(/([^/]+)$/, `$1__q_${queryTag}`);
+    }
+
+    return `${parsed.host}${path}`;
+  } catch (e) {
+    // URL 解析失败时的保底处理
+    let fallback = url.replace(/https?:\/\//g, '');
+    if (/^[^/]+$/.test(fallback)) return `${fallback}/index.html`;
+    if (/^[^/]+\/$/.test(fallback)) return `${fallback}index.html`;
+    return fallback;
+  }
 }
 
 function Env(name, opts) {
@@ -373,7 +397,7 @@ function Env(name, opts) {
         let httpApi = this.getData('@chavy_boxjs_userCfgs.httpApi');
         httpApi = httpApi ? httpApi.replace(/\n/g, '').trim() : httpApi;
         let httpApi_timeout = this.getData(
-          '@chavy_boxjs_userCfgs.httpApi_timeout'
+          '@chavy_boxjs_userCfgs.httpApi_timeout',
         );
         httpApi_timeout = httpApi_timeout ? httpApi_timeout * 1 : 20;
         httpApi_timeout =
@@ -404,7 +428,7 @@ function Env(name, opts) {
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
-          this.dataFile
+          this.dataFile,
         );
         const isCurDirDataFile = this.fs.existsSync(curDirDataFilePath);
         const isRootDirDataFile =
@@ -484,7 +508,7 @@ function Env(name, opts) {
         const curDirDataFilePath = this.path.resolve(this.dataFile);
         const rootDirDataFilePath = this.path.resolve(
           process.cwd(),
-          this.dataFile
+          this.dataFile,
         );
         const isCurDirDataFile = this.fs.existsSync(curDirDataFilePath);
         const isRootDirDataFile =
@@ -522,7 +546,7 @@ function Env(name, opts) {
             Object(a[c]) === a[c]
               ? a[c]
               : (a[c] = Math.abs(path[i + 1]) >> 0 === +path[i + 1] ? [] : {}),
-          obj
+          obj,
         )[path[path.length - 1]] = value;
       return obj;
     }
@@ -686,10 +710,10 @@ function Env(name, opts) {
                 null,
                 { status, statusCode, headers, body, bodyBytes },
                 body,
-                bodyBytes
+                bodyBytes,
               );
             },
-            (err) => callback((err && err.error) || 'UndefinedError')
+            (err) => callback((err && err.error) || 'UndefinedError'),
           );
           break;
         case 'Node.js':
@@ -724,7 +748,7 @@ function Env(name, opts) {
                 callback(
                   null,
                   { status, statusCode, headers, rawBody, body },
-                  body
+                  body,
                 );
               },
               (err) => {
@@ -732,9 +756,9 @@ function Env(name, opts) {
                 callback(
                   error,
                   resp,
-                  resp && iconv.decode(resp.rawBody, this.encoding)
+                  resp && iconv.decode(resp.rawBody, this.encoding),
                 );
-              }
+              },
             );
           break;
       }
@@ -811,10 +835,10 @@ function Env(name, opts) {
                 null,
                 { status, statusCode, headers, body, bodyBytes },
                 body,
-                bodyBytes
+                bodyBytes,
               );
             },
-            (err) => callback((err && err.error) || 'UndefinedError')
+            (err) => callback((err && err.error) || 'UndefinedError'),
           );
           break;
         case 'Node.js':
@@ -828,7 +852,7 @@ function Env(name, opts) {
               callback(
                 null,
                 { status, statusCode, headers, rawBody, body },
-                body
+                body,
               );
             },
             (err) => {
@@ -836,9 +860,9 @@ function Env(name, opts) {
               callback(
                 error,
                 resp,
-                resp && iconv.decode(resp.rawBody, this.encoding)
+                resp && iconv.decode(resp.rawBody, this.encoding),
               );
-            }
+            },
           );
           break;
       }
@@ -867,7 +891,7 @@ function Env(name, opts) {
       if (/(y+)/.test(fmt))
         fmt = fmt.replace(
           RegExp.$1,
-          (date.getFullYear() + '').substr(4 - RegExp.$1.length)
+          (date.getFullYear() + '').substr(4 - RegExp.$1.length),
         );
       for (let k in o)
         if (new RegExp('(' + k + ')').test(fmt))
@@ -875,7 +899,7 @@ function Env(name, opts) {
             RegExp.$1,
             RegExp.$1.length == 1
               ? o[k]
-              : ('00' + o[k]).substr(('' + o[k]).length)
+              : ('00' + o[k]).substr(('' + o[k]).length),
           );
       return fmt;
     }
@@ -1097,7 +1121,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.debug}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -1110,7 +1134,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.info}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -1123,7 +1147,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.warn}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -1136,7 +1160,7 @@ function Env(name, opts) {
         console.log(
           `${this.logLevelPrefixs.error}${logs
             .map((l) => l ?? String(l))
-            .join(this.logSeparator)}`
+            .join(this.logSeparator)}`,
         );
       }
     }
@@ -1164,7 +1188,7 @@ function Env(name, opts) {
             `❗️${this.name}, 错误!`,
             msg,
             typeof err.message !== 'undefined' ? err.message : err,
-            err.stack
+            err.stack,
           );
           break;
       }
