@@ -25,6 +25,11 @@ $.JDDomain = ['jd.com', 'jd.hk', 'jingxi.com'];
 $.isJD = false;
 $.seckill = false;
 
+// 判断是否是wasm，如果是wasm则直接done
+if ($request.url.includes('.wasm')) {
+  $.done({});
+}
+
 if ($request.url.includes('/seckill')) {
   // $.seckill = true;
 }
