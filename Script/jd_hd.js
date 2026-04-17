@@ -26,7 +26,7 @@ $.isJD = false;
 $.seckill = false;
 
 // 判断是否是wasm，如果是wasm则直接done
-if ($request.url.includes('.wasm')) {
+if (isWasmLike($request, $response)) {
   $.done({});
 }
 
@@ -3711,4 +3711,35 @@ function Env(name, opts) {
       }
     }
   })(name, opts);
+}
+
+function isWasmLike(req, resp) {
+  const url = (req?.url || '').toLowerCase();
+
+  // 1) URL 规则
+  if (/\.(wasm)(\?|$)/i.test(url)) return true;
+  if (/[?&](module|file|type)=.*\.wasm(?:[&#]|$)/i.test(url)) return true;
+
+  // 2) 头部规则
+  const reqHeaders = req?.headers || {};
+  const respHeaders = resp?.headers || {};
+  const accept = (reqHeaders.Accept || reqHeaders.accept || '').toLowerCase();
+  const ctype = (
+    respHeaders['Content-Type'] ||
+    respHeaders['content-type'] ||
+    ''
+  ).toLowerCase();
+
+  if (accept.includes('application/wasm')) return true;
+  if (ctype.includes('application/wasm')) return true;
+
+  // 3) 内容魔数（最可靠）
+  const b = resp?.bodyBytes;
+  if (b && b.length >= 4) {
+    if (b[0] === 0x00 && b[1] === 0x61 && b[2] === 0x73 && b[3] === 0x6d) {
+      return true;
+    }
+  }
+
+  return false;
 }
