@@ -788,6 +788,27 @@ try {
         return decoded !== s ? decoded : null;
       } catch(e) { return null; }
     }
+    function _sd_isJWT(s) {
+      // 三段 base64url，以 . 分隔，header 解码后含 "alg" 字段
+      return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/.test(s);
+    }
+    function _sd_decodeJWTPart(part) {
+      try {
+        const b = part.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b + '==='.slice((b.length + 3) % 4);
+        const json = decodeURIComponent(Array.from(atob(padded)).map(c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
+        return JSON.stringify(JSON.parse(json), null, 2);
+      } catch(e) { return null; }
+    }
+    function _sd_decodeJWT(s) {
+      const parts = s.split('.');
+      const header  = _sd_decodeJWTPart(parts[0]);
+      const payload = _sd_decodeJWTPart(parts[1]);
+      if (!header || !payload) return null;
+      // 校验 header 含 alg 字段
+      try { if (!JSON.parse(header).alg) return null; } catch(e) { return null; }
+      return 'Header:\\n' + header + '\\n\\nPayload:\\n' + payload + '\\n\\nSignature:\\n' + parts[2];
+    }
     function _sd_isUnicode(s) {
       // \\\\u → 注入代码中为 \\u → 正则匹配字面反斜杠+u
       return /\\\\u[0-9a-fA-F]{4}/.test(s);
@@ -811,6 +832,10 @@ try {
         const t = _sd_tsToDate(s);
         if (t) results.push({ label: '时间戳', value: t });
       }
+      if (_sd_isJWT(s)) {
+        const j = _sd_decodeJWT(s);
+        if (j) results.push({ label: 'JWT', value: j });
+      }
       if (_sd_isUnicode(s)) {
         const u = _sd_decodeUnicode(s);
         if (u && u !== s) results.push({ label: 'Unicode', value: u });
@@ -819,7 +844,7 @@ try {
         const u = _sd_decodeUrl(s);
         if (u && u !== s) results.push({ label: 'URL解码', value: u });
       }
-      if (_sd_isBase64(s)) {
+      if (_sd_isBase64(s) && !_sd_isJWT(s)) {
         const b = _sd_decodeBase64(s);
         if (b) results.push({ label: 'Base64', value: b });
       }
@@ -911,7 +936,8 @@ try {
         val.style.cssText = [
           'background:#313244', 'border-radius:6px',
           'padding:8px 10px', 'cursor:pointer',
-          'color:#a6e3a1', 'word-break:break-all'
+          'color:#a6e3a1', 'word-break:break-all',
+          'white-space:pre-wrap'
         ].join(';');
         val.onclick = function() {
           navigator.clipboard && navigator.clipboard.writeText(item.value).then(function() {
