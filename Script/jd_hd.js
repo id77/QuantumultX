@@ -311,6 +311,267 @@ try {
     const _${prefix}_id77_Map = Map;
   </script>`;
 
+  // Hook CryptoJS 对称加密/解密/哈希/HMAC（移植自 0xsdeo/AntiDebug_Breaker Hook_CryptoJS.js，无需油猴环境）
+  let cryptoHookScript = `<script ignore>
+  (function () {
+    let _id77_hook_time = 0;
+    function _id77_hasEncryptProp(obj) {
+      const props = ['ciphertext','key','iv','algorithm','mode','padding','blockSize','formatter'];
+      if (!obj || typeof obj !== 'object') return false;
+      for (const p of props) { if (!(p in obj)) return false; }
+      return true;
+    }
+    function _id77_hasDecryptProp(obj) {
+      const props = ['sigBytes','words'];
+      if (!obj || typeof obj !== 'object') return false;
+      for (const p of props) { if (!(p in obj)) return false; }
+      return true;
+    }
+    function _id77_getSigBytes(size) {
+      return ({8:'64bits',16:'128bits',24:'192bits',32:'256bits'})[size] || '未获取到';
+    }
+    const _id77_temp_apply = Function.prototype.apply;
+    Function.prototype.apply = function () {
+      // CryptoJS 对称加密
+      if (arguments.length === 2 && arguments[0] && arguments[1] &&
+          typeof arguments[1] === 'object' && arguments[1].length === 1 &&
+          _id77_hasEncryptProp(arguments[1][0])) {
+        if (Object.hasOwn(arguments[0], '$super') && Object.hasOwn(arguments[1], 'callee')) {
+          if (this.toString().indexOf('function()') !== -1 ||
+              /^\\s*function(?:\\s*\\*)?\\s+[A-Za-z_$][\\w$]*\\s*\\([^)]*\\)\\s*\\{/.test(this.toString()) ||
+              /^\\s*function\\s*\\(\\s*\\)\\s*\\{/.test(this.toString())) {
+            console.log(...arguments);
+            const enc = arguments[0].$super.toString.call(arguments[1][0]);
+            console.log('对称加密后的密文：', enc !== '[object Object]' ? enc : '请自行对上方对象调用toString()');
+            const key = arguments[1][0]['key'].toString();
+            console.log('对称加密Hex key：', key !== '[object Object]' ? key : '请自行对上方对象调用toString()');
+            const iv = arguments[1][0]['iv'];
+            if (iv) {
+              const ivStr = iv.toString();
+              console.log('对称加密Hex iv：', ivStr !== '[object Object]' ? ivStr : '请自行对上方对象调用toString()');
+            } else { console.log('对称加密时未用到iv'); }
+            if (arguments[1][0]['padding']) console.log('对称加密时的填充模式：', arguments[1][0]['padding']);
+            if (arguments[1][0]['mode'] && Object.hasOwn(arguments[1][0]['mode'], 'Encryptor'))
+              console.log('对称加密时的运算模式：', arguments[1][0]['mode']['Encryptor']['processBlock']);
+            if (arguments[1][0]['key'] && Object.hasOwn(arguments[1][0]['key'], 'sigBytes'))
+              console.log('对称加密时的密钥长度：', _id77_getSigBytes(arguments[1][0]['key']['sigBytes']));
+            console.log('%c---------------------------------------------------------------------', 'color:green;');
+          } else {
+            console.groupCollapsed('如果上方正常输出了对称加密的key、iv等加密参数可忽略本条信息。');
+            console.log(...arguments);
+            console.log('对称加密：由于一些必要因素导致未能输出key、iv等加密参数，请自行使用上方打印的对象进行toString调用输出key、iv等加密参数。');
+            console.log('%c---------------------------------------------------------------------', 'color:green;');
+            console.groupEnd();
+          }
+        }
+      // CryptoJS 对称解密
+      } else if (arguments.length === 2 && arguments[0] && arguments[1] &&
+          typeof arguments[1] === 'object' && arguments[1].length === 3 &&
+          _id77_hasDecryptProp(arguments[1][1])) {
+        if (Object.hasOwn(arguments[0], '$super') && Object.hasOwn(arguments[1], 'callee')) {
+          if (this.toString().indexOf('function()') === -1 && arguments[1][0] === 2) {
+            console.log(...arguments);
+            const key = arguments[1][1].toString();
+            console.log('对称解密Hex key：', key !== '[object Object]' ? key : '请自行对上方对象调用toString()');
+            if (Object.hasOwn(arguments[1][2], 'iv') && arguments[1][2]['iv']) {
+              const iv = arguments[1][2]['iv'].toString();
+              console.log('对称解密Hex iv：', iv !== '[object Object]' ? iv : '请自行对上方对象调用toString()');
+            } else { console.log('对称解密时未用到iv'); }
+            if (Object.hasOwn(arguments[1][2], 'padding') && arguments[1][2]['padding'])
+              console.log('对称解密时的填充模式：', arguments[1][2]['padding']);
+            if (Object.hasOwn(arguments[1][2], 'mode') && arguments[1][2]['mode'])
+              console.log('对称解密时的运算模式：', arguments[1][2]['mode']['Encryptor']['processBlock']);
+            if (_id77_hook_time === 0) {
+              console.log('可使用 https://github.com/0xsdeo/Fuzz_Crypto_Algorithms 进行fuzz加解密参数');
+              _id77_hook_time++;
+            }
+            console.log('%c---------------------------------------------------------------------', 'color:green;');
+          }
+        }
+      // CryptoJS 哈希 / HMAC
+      } else if (arguments.length === 2 && arguments[0] && arguments[1] &&
+          typeof arguments[0] === 'object' && typeof arguments[1] === 'object') {
+        if (arguments[0].__proto__ &&
+            Object.hasOwn(arguments[0].__proto__, '$super') &&
+            Object.hasOwn(arguments[0].__proto__, '_doFinalize') &&
+            arguments[0].__proto__.__proto__ &&
+            Object.hasOwn(arguments[0].__proto__.__proto__, 'finalize')) {
+          if (arguments[0].__proto__.__proto__.finalize.toString().indexOf('哈希/HMAC') === -1) {
+            const _id77_tmp_fin = arguments[0].__proto__.__proto__.finalize;
+            arguments[0].__proto__.__proto__.finalize = function () {
+              if (!Object.hasOwn(this, 'init')) {
+                const hash = _id77_tmp_fin.call(this, ...arguments);
+                console.log('哈希/HMAC 加密 原始数据：', ...arguments);
+                console.log('哈希/HMAC 加密 密文：', hash.toString());
+                console.log('哈希/HMAC 加密 密文长度：', hash.toString().length);
+                console.log('注：如果是HMAC加密，本脚本是hook不到密钥的，需自行查找。');
+                console.log('%c---------------------------------------------------------------------', 'color:green;');
+                return hash;
+              }
+              return _id77_tmp_fin.call(this, ...arguments);
+            };
+          }
+        }
+      }
+      return _id77_temp_apply.call(this, ...arguments);
+    };
+  })();
+  </script>`;
+
+  // Hook JSEncrypt(RSA) + SMcrypto(SM2/SM3/SM4)（移植自 0xsdeo/AntiDebug_Breaker Hook_JSEncrypt_SMcrypto.js，无需油猴环境）
+  let encryptHookScript = `<script ignore>
+  (function () {
+    // hex -> base64
+    const _id77_b64c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    function _id77_hex2b64(t) {
+      let e, i, r = "";
+      for (e = 0; e + 3 <= t.length; e += 3)
+        i = parseInt(t.substring(e, e + 3), 16),
+          r += _id77_b64c.charAt(i >> 6) + _id77_b64c.charAt(63 & i);
+      e + 1 === t.length ? (i = parseInt(t.substring(e, e + 1), 16), r += _id77_b64c.charAt(i << 2))
+        : e + 2 === t.length && (i = parseInt(t.substring(e, e + 2), 16),
+          r += _id77_b64c.charAt(i >> 2) + _id77_b64c.charAt((3 & i) << 4));
+      while ((3 & r.length) > 0) r += "=";
+      return r;
+    }
+
+    // JSEncrypt RSA 特征检测
+    function _id77_hasRSAProp(obj) {
+      const props = ['constructor','getPrivateBaseKey','getPrivateBaseKeyB64','getPrivateKey',
+        'getPublicBaseKey','getPublicBaseKeyB64','getPublicKey','parseKey','parsePropertiesFrom'];
+      if (!obj || typeof obj !== 'object') return false;
+      for (const p of props) { if (!(p in obj)) return false; }
+      return true;
+    }
+
+    // SM2 特征检测
+    function _id77_hasSM2Prop(obj) {
+      const props = ['doDecrypt','doEncrypt','doSignature','doVerifySignature','generateKeyPairHex','getPoint'];
+      if (!obj || typeof obj !== 'object') return false;
+      for (const p of props) { if (!(p in obj)) return false; }
+      return true;
+    }
+
+    // SM4 加密测试（用已知输入/输出验证）
+    function _id77_sm4EncTest(fn) {
+      try {
+        return fn("123456","0123456789abcdeffedcba9876543210",{mode:'cbc',iv:"000102030405060708090a0b0c0d0e0f",cipherType:'hex'});
+      } catch(e) { return false; }
+    }
+    function _id77_sm4DecTest(fn) {
+      try {
+        return fn("1b96f27b7f523118539b416810c91d4d","0123456789abcdeffedcba9876543210",{mode:'cbc',iv:"000102030405060708090a0b0c0d0e0f",cipherType:'hex'});
+      } catch(e) { return false; }
+    }
+    function _id77_sm3Test(fn) {
+      try { return fn("123456"); } catch(e) { return false; }
+    }
+
+    // SM2/SM3/SM4 原始函数引用
+    let _id77_raw_sm2enc, _id77_raw_sm2dec, _id77_raw_sm4enc, _id77_raw_sm4dec, _id77_raw_sm3;
+
+    function _id77_my_sm2enc() {
+      const r = Reflect.apply(_id77_raw_sm2enc, this, arguments);
+      console.log("SM2 加密明文:", arguments[0]);
+      console.log("SM2 加密公钥:", arguments[1]);
+      console.log("SM2 加密密文:", r);
+      return r;
+    }
+    function _id77_my_sm2dec() {
+      const r = Reflect.apply(_id77_raw_sm2dec, this, arguments);
+      console.log("SM2 解密密文:", arguments[0]);
+      console.log("SM2 解密私钥:", arguments[1]);
+      console.log("SM2 解密明文:", r);
+      return r;
+    }
+    function _id77_my_sm4enc() {
+      const r = Reflect.apply(_id77_raw_sm4enc, this, arguments);
+      console.log("SM4 加密明文:", arguments[0]);
+      console.log("SM4 加密key:", arguments[1]);
+      if (arguments[2] && typeof arguments[2] === 'object') {
+        if (arguments[2].cipherType) console.log("SM4 加密数据格式:", arguments[2].cipherType);
+        if (arguments[2].iv) console.log("SM4 加密iv:", arguments[2].iv);
+        if (arguments[2].mode) console.log("SM4 加密模式:", arguments[2].mode);
+      }
+      console.log("SM4 加密密文：", r);
+      return r;
+    }
+    function _id77_my_sm4dec() {
+      const r = Reflect.apply(_id77_raw_sm4dec, this, arguments);
+      console.log("SM4 解密密文:", arguments[0]);
+      console.log("SM4 解密key:", arguments[1]);
+      if (arguments[2] && typeof arguments[2] === 'object') {
+        if (arguments[2].cipherType) console.log("SM4 解密数据格式:", arguments[2].cipherType);
+        if (arguments[2].iv) console.log("SM4 解密iv:", arguments[2].iv);
+        if (arguments[2].mode) console.log("SM4 解密模式:", arguments[2].mode);
+      }
+      console.log("SM4 解密明文：", r);
+      return r;
+    }
+    function _id77_my_sm3() {
+      const r = Reflect.apply(_id77_raw_sm3, this, arguments);
+      console.log("SM3 加密明文：", arguments[0]);
+      console.log("SM3 加密密文：", r);
+      return r;
+    }
+
+    const _id77_temp_call = Function.prototype.call;
+    Function.prototype.call = function () {
+      // JSEncrypt RSA hook
+      if (arguments.length === 1 && arguments[0] && arguments[0].__proto__ &&
+          typeof arguments[0].__proto__ === 'object' && _id77_hasRSAProp(arguments[0].__proto__)) {
+        if ('__proto__' in arguments[0].__proto__ && arguments[0].__proto__.__proto__ &&
+            Object.hasOwn(arguments[0].__proto__.__proto__, 'encrypt') &&
+            Object.hasOwn(arguments[0].__proto__.__proto__, 'decrypt')) {
+          if (arguments[0].__proto__.__proto__.encrypt.toString().indexOf('RSA加密') === -1) {
+            const _tmp_enc = arguments[0].__proto__.__proto__.encrypt;
+            arguments[0].__proto__.__proto__.encrypt = function () {
+              const enc = _tmp_enc.bind(this, ...arguments)();
+              console.log("RSA 公钥：\\n", this.getPublicKey());
+              console.log("RSA加密 原始数据：", ...arguments);
+              console.log("RSA加密 Base64 密文：", _id77_hex2b64(enc));
+              console.log('%c---------------------------------------------------------------------', 'color:green;');
+              return enc;
+            };
+          }
+          if (arguments[0].__proto__.__proto__.decrypt.toString().indexOf('RSA解密') === -1) {
+            const _tmp_dec = arguments[0].__proto__.__proto__.decrypt;
+            arguments[0].__proto__.__proto__.decrypt = function () {
+              const dec = _tmp_dec.bind(this, ...arguments)();
+              console.log("RSA 私钥：\\n", this.getPrivateKey());
+              console.log("RSA解密 Base64 原始数据：", _id77_hex2b64(...arguments));
+              console.log("RSA解密 明文：", dec);
+              console.log('%c---------------------------------------------------------------------', 'color:green;');
+              return dec;
+            };
+          }
+        }
+      }
+
+      const _id77_result = Reflect.apply(_id77_temp_call, this, arguments);
+
+      // SMcrypto webpack 模块 hook（SM2/SM3/SM4）
+      if (arguments.length === 4 && arguments[1]?.exports) {
+        const exp = arguments[1].exports;
+        if (exp.doEncrypt && _id77_hasSM2Prop(exp)) { _id77_raw_sm2enc = exp.doEncrypt; exp.doEncrypt = _id77_my_sm2enc; }
+        if (exp.doDecrypt && _id77_hasSM2Prop(exp)) { _id77_raw_sm2dec = exp.doDecrypt; exp.doDecrypt = _id77_my_sm2dec; }
+        if (exp.encrypt && _id77_sm4EncTest(exp.encrypt) === "1b96f27b7f523118539b416810c91d4d") {
+          _id77_raw_sm4enc = exp.encrypt; exp.encrypt = _id77_my_sm4enc;
+        }
+        if (exp.decrypt && _id77_sm4DecTest(exp.decrypt) === "123456") {
+          _id77_raw_sm4dec = exp.decrypt; exp.decrypt = _id77_my_sm4dec;
+        }
+        if (typeof exp === 'function' && exp.toString().includes('invalid mode') &&
+            _id77_sm3Test(exp) === "207cf410532f92a47dee245ce9b11ff71f578ebd763eb3bbea44ebd043d018fb") {
+          _id77_raw_sm3 = exp; arguments[1].exports = _id77_my_sm3;
+        }
+      }
+
+      return _id77_result;
+    };
+  })();
+  </script>`;
+
   let clickerDom = `<div id="id77_clicker" style="position: fixed; bottom: 0; width: 100%; display: none;">
     <div
       class="id77_clicker_header"
@@ -3146,12 +3407,12 @@ try {
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
-      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`,
+      `${copyObject}${cryptoHookScript}${encryptHookScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   } else {
     html = html.replace(
       /(<\/head>|<script|<div)/i,
-      `${copyObject}${scriptDoms}${captchaScript}${mitmContent}$1`,
+      `${copyObject}${cryptoHookScript}${encryptHookScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   }
 
