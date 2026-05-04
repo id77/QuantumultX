@@ -315,6 +315,11 @@ try {
   let cryptoHookScript = `<script ignore>
   (function () {
     let _id77_hook_time = 0;
+    let _id77_pending_plain = null; // 共享明文，由 SerializableCipher.encrypt wrapper 设置，apply hook 读取
+    const _id77_modeMap = new WeakMap(); // mode 对象 → 可读名称
+    const _id77_padMap  = new WeakMap(); // padding 对象 → 可读名称
+    function _id77_getModeName(o) { return o && _id77_modeMap.get(o) || null; }
+    function _id77_getPadName(o)  { return o && _id77_padMap.get(o)  || null; }
     function _id77_hasEncryptProp(obj) {
       const props = ['ciphertext','key','iv','algorithm','mode','padding','blockSize','formatter'];
       if (!obj || typeof obj !== 'object') return false;
@@ -330,6 +335,13 @@ try {
     function _id77_getSigBytes(size) {
       return ({8:'64bits',16:'128bits',24:'192bits',32:'256bits'})[size] || '未获取到';
     }
+    function _id77_hex2utf8(hex) {
+      try {
+        const bytes = new Uint8Array(hex.match(/../g).map(h => parseInt(h, 16)));
+        const s = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+        return s;
+      } catch(e) { return null; }
+    }
     const _id77_temp_apply = Function.prototype.apply;
     Function.prototype.apply = function () {
       // CryptoJS 对称加密
@@ -343,16 +355,24 @@ try {
             console.log(...arguments);
             const enc = arguments[0].$super.toString.call(arguments[1][0]);
             console.log('对称加密后的密文：', enc !== '[object Object]' ? enc : '请自行对上方对象调用toString()');
+            if (_id77_pending_plain !== null) console.log('对称加密前明文：', _id77_pending_plain);
             const key = arguments[1][0]['key'].toString();
             console.log('对称加密Hex key：', key !== '[object Object]' ? key : '请自行对上方对象调用toString()');
+            if (key !== '[object Object]') { const _ku = _id77_hex2utf8(key); if (_ku) console.log('对称加密UTF-8 key：', _ku); }
             const iv = arguments[1][0]['iv'];
             if (iv) {
               const ivStr = iv.toString();
               console.log('对称加密Hex iv：', ivStr !== '[object Object]' ? ivStr : '请自行对上方对象调用toString()');
+              if (ivStr !== '[object Object]') { const _iu = _id77_hex2utf8(ivStr); if (_iu) console.log('对称加密UTF-8 iv：', _iu); }
             } else { console.log('对称加密时未用到iv'); }
-            if (arguments[1][0]['padding']) console.log('对称加密时的填充模式：', arguments[1][0]['padding']);
-            if (arguments[1][0]['mode'] && Object.hasOwn(arguments[1][0]['mode'], 'Encryptor'))
-              console.log('对称加密时的运算模式：', arguments[1][0]['mode']['Encryptor']['processBlock']);
+            if (arguments[1][0]['padding']) {
+              const _pn = _id77_getPadName(arguments[1][0]['padding']);
+              console.log('对称加密时的填充模式：', _pn || arguments[1][0]['padding']);
+            }
+            if (arguments[1][0]['mode'] && Object.hasOwn(arguments[1][0]['mode'], 'Encryptor')) {
+              const _mn = _id77_getModeName(arguments[1][0]['mode']);
+              console.log('对称加密时的运算模式：', _mn || arguments[1][0]['mode']['Encryptor']['processBlock']);
+            }
             if (arguments[1][0]['key'] && Object.hasOwn(arguments[1][0]['key'], 'sigBytes'))
               console.log('对称加密时的密钥长度：', _id77_getSigBytes(arguments[1][0]['key']['sigBytes']));
             console.log('%c---------------------------------------------------------------------', 'color:green;');
@@ -373,14 +393,20 @@ try {
             console.log(...arguments);
             const key = arguments[1][1].toString();
             console.log('对称解密Hex key：', key !== '[object Object]' ? key : '请自行对上方对象调用toString()');
+            if (key !== '[object Object]') { const _ku = _id77_hex2utf8(key); if (_ku) console.log('对称解密UTF-8 key：', _ku); }
             if (Object.hasOwn(arguments[1][2], 'iv') && arguments[1][2]['iv']) {
               const iv = arguments[1][2]['iv'].toString();
               console.log('对称解密Hex iv：', iv !== '[object Object]' ? iv : '请自行对上方对象调用toString()');
+              if (iv !== '[object Object]') { const _iu = _id77_hex2utf8(iv); if (_iu) console.log('对称解密UTF-8 iv：', _iu); }
             } else { console.log('对称解密时未用到iv'); }
-            if (Object.hasOwn(arguments[1][2], 'padding') && arguments[1][2]['padding'])
-              console.log('对称解密时的填充模式：', arguments[1][2]['padding']);
-            if (Object.hasOwn(arguments[1][2], 'mode') && arguments[1][2]['mode'])
-              console.log('对称解密时的运算模式：', arguments[1][2]['mode']['Encryptor']['processBlock']);
+            if (Object.hasOwn(arguments[1][2], 'padding') && arguments[1][2]['padding']) {
+              const _pn = _id77_getPadName(arguments[1][2]['padding']);
+              console.log('对称解密时的填充模式：', _pn || arguments[1][2]['padding']);
+            }
+            if (Object.hasOwn(arguments[1][2], 'mode') && arguments[1][2]['mode']) {
+              const _mn = _id77_getModeName(arguments[1][2]['mode']);
+              console.log('对称解密时的运算模式：', _mn || arguments[1][2]['mode']['Encryptor']['processBlock']);
+            }
             if (_id77_hook_time === 0) {
               console.log('可使用 https://github.com/0xsdeo/Fuzz_Crypto_Algorithms 进行fuzz加解密参数');
               _id77_hook_time++;
@@ -413,8 +439,65 @@ try {
           }
         }
       }
-      return _id77_temp_apply.call(this, ...arguments);
+      // 使用 Reflect.apply 避免触发被 hook 的 Function.prototype.call
+      return Reflect.apply(_id77_temp_apply, this, arguments);
     };
+
+    // Hook CryptoJS SerializableCipher / PasswordBasedCipher 以捕获加密前明文和解密后明文
+    // 同时暴露到 window 供 encryptHookScript（webpack 模块检测）复用
+    window._id77_hookCryptoJSMethods = function(CJS) {
+      if (!CJS || !CJS.lib || CJS.lib._id77_patched) return;
+      CJS.lib._id77_patched = true;
+      // 填充 mode / padding 名称映射表
+      try {
+        if (CJS.mode) for (const n of Object.keys(CJS.mode)) { if (CJS.mode[n] && typeof CJS.mode[n] === 'object') _id77_modeMap.set(CJS.mode[n], n); }
+        if (CJS.pad)  for (const n of Object.keys(CJS.pad))  { if (CJS.pad[n]  && typeof CJS.pad[n]  === 'object') _id77_padMap.set(CJS.pad[n],   n); }
+      } catch(e) {}
+      function _toPlain(msg) {
+        if (typeof msg === 'string') return msg;
+        if (msg && msg.words) {
+          try { return msg.toString(CJS.enc.Utf8); } catch(e) { return msg.toString(); }
+        }
+        return String(msg);
+      }
+      function _wrapEnc(orig, label) {
+        return function(cipher, message, keyOrPass, cfg) {
+          const plain = _toPlain(message);
+          _id77_pending_plain = plain;
+          let result;
+          try { result = Reflect.apply(orig, this, arguments); } finally { _id77_pending_plain = null; }
+          return result;
+        };
+      }
+      function _wrapDec(orig, label) {
+        return function(cipher, ciphertext, keyOrPass, cfg) {
+          const result = Reflect.apply(orig, this, arguments);
+          try {
+            console.log(label + '解密后明文：', result.toString(CJS.enc.Utf8));
+            console.log('%c---------------------------------------------------------------------', 'color:green;');
+          } catch(e) {}
+          return result;
+        };
+      }
+      try {
+        const SC = CJS.lib.SerializableCipher;
+        const PBC = CJS.lib.PasswordBasedCipher;
+        if (SC) { SC.encrypt = _wrapEnc(SC.encrypt, 'CryptoJS '); SC.decrypt = _wrapDec(SC.decrypt, 'CryptoJS '); }
+        if (PBC) { PBC.encrypt = _wrapEnc(PBC.encrypt, 'CryptoJS(PBC) '); PBC.decrypt = _wrapDec(PBC.decrypt, 'CryptoJS(PBC) '); }
+      } catch(e) {}
+    };
+    // 监视 window.CryptoJS（CDN 全局引入方式）
+    (function() {
+      let _cv = window.CryptoJS;
+      if (_cv) { try { window._id77_hookCryptoJSMethods(_cv); } catch(e) {} }
+      try {
+        Object.defineProperty(window, 'CryptoJS', {
+          configurable: true, enumerable: true,
+          get() { return _cv; },
+          set(v) { _cv = v; try { window._id77_hookCryptoJSMethods(v); } catch(e) {} }
+        });
+      } catch(e) {}
+    })();
   })();
   </script>`;
 
@@ -469,6 +552,8 @@ try {
 
     // SM2/SM3/SM4 原始函数引用
     let _id77_raw_sm2enc, _id77_raw_sm2dec, _id77_raw_sm4enc, _id77_raw_sm4dec, _id77_raw_sm3;
+    // 已处理过的 exports 对象缓存，避免重复 hook 和重复 SM4 测试
+    const _id77_hooked = new WeakSet();
 
     function _id77_my_sm2enc() {
       const r = Reflect.apply(_id77_raw_sm2enc, this, arguments);
@@ -553,17 +638,32 @@ try {
       // SMcrypto webpack 模块 hook（SM2/SM3/SM4）
       if (arguments.length === 4 && arguments[1]?.exports) {
         const exp = arguments[1].exports;
-        if (exp.doEncrypt && _id77_hasSM2Prop(exp)) { _id77_raw_sm2enc = exp.doEncrypt; exp.doEncrypt = _id77_my_sm2enc; }
-        if (exp.doDecrypt && _id77_hasSM2Prop(exp)) { _id77_raw_sm2dec = exp.doDecrypt; exp.doDecrypt = _id77_my_sm2dec; }
-        if (exp.encrypt && _id77_sm4EncTest(exp.encrypt) === "1b96f27b7f523118539b416810c91d4d") {
-          _id77_raw_sm4enc = exp.encrypt; exp.encrypt = _id77_my_sm4enc;
+        // 跳过已处理过的模块对象（防重复 hook、避免重复 SM4 测试开销）
+        if (exp && typeof exp === 'object' && !_id77_hooked.has(exp)) {
+          let matched = false;
+          if (exp.doEncrypt && exp.doEncrypt !== _id77_my_sm2enc && _id77_hasSM2Prop(exp)) {
+            _id77_raw_sm2enc = exp.doEncrypt; exp.doEncrypt = _id77_my_sm2enc; matched = true;
+          }
+          if (exp.doDecrypt && exp.doDecrypt !== _id77_my_sm2dec && _id77_hasSM2Prop(exp)) {
+            _id77_raw_sm2dec = exp.doDecrypt; exp.doDecrypt = _id77_my_sm2dec; matched = true;
+          }
+          if (exp.encrypt && exp.encrypt !== _id77_my_sm4enc && _id77_sm4EncTest(exp.encrypt) === "1b96f27b7f523118539b416810c91d4d") {
+            _id77_raw_sm4enc = exp.encrypt; exp.encrypt = _id77_my_sm4enc; matched = true;
+          }
+          if (exp.decrypt && exp.decrypt !== _id77_my_sm4dec && _id77_sm4DecTest(exp.decrypt) === "123456") {
+            _id77_raw_sm4dec = exp.decrypt; exp.decrypt = _id77_my_sm4dec; matched = true;
+          }
+          if (matched) _id77_hooked.add(exp);
         }
-        if (exp.decrypt && _id77_sm4DecTest(exp.decrypt) === "123456") {
-          _id77_raw_sm4dec = exp.decrypt; exp.decrypt = _id77_my_sm4dec;
-        }
-        if (typeof exp === 'function' && exp.toString().includes('invalid mode') &&
+        if (typeof exp === 'function' && exp !== _id77_my_sm3 && exp.toString().includes('invalid mode') &&
             _id77_sm3Test(exp) === "207cf410532f92a47dee245ce9b11ff71f578ebd763eb3bbea44ebd043d018fb") {
           _id77_raw_sm3 = exp; arguments[1].exports = _id77_my_sm3;
+        }
+        // CryptoJS webpack 模块检测（通过 window._id77_hookCryptoJSMethods 复用明文 hook）
+        if (exp && typeof exp === 'object' && !_id77_hooked.has(exp) &&
+            exp.lib && exp.enc && (exp.AES || exp.SHA256 || (exp.lib && exp.lib.Cipher))) {
+          try { window._id77_hookCryptoJSMethods && window._id77_hookCryptoJSMethods(exp); } catch(e) {}
+          _id77_hooked.add(exp);
         }
       }
 
