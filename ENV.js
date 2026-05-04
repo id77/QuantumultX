@@ -389,7 +389,7 @@ function Env(name, opts) {
       if ('undefined' !== typeof $task) return 'Quantumult X';
       if ('undefined' !== typeof $loon) return 'Loon';
       if ('undefined' !== typeof $rocket) return 'Shadowrocket';
-      if ('undefined' !== typeof TrollScriptPlugin) return 'TrollScript';
+      if ('undefined' !== typeof sms) return 'TrollScript';
     }
 
     isNode() {
