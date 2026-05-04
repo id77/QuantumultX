@@ -761,6 +761,199 @@ try {
     </div>
   </div>`;
 
+  let selectionDecodeScript = `<script ignore>
+  (function () {
+    /* ── 工具函数 ── */
+    function _sd_isTimestamp(s) {
+      // \\d 在模板字符串中需要双反斜杠才能注入正确的 \d 正则
+      return /^\\d{10}$/.test(s) || /^\\d{13}$/.test(s);
+    }
+    function _sd_tsToDate(s) {
+      const ms = s.length === 10 ? +s * 1000 : +s;
+      const d = new Date(ms);
+      if (isNaN(d)) return null;
+      const pad = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+        + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+    function _sd_isBase64(s) {
+      if (s.length < 8) return false;
+      const t = s.replace(/=+$/, '');
+      return /^[A-Za-z0-9+/_-]+$/.test(t) && t.length % 4 !== 1;
+    }
+    function _sd_decodeBase64(s) {
+      try {
+        const b = s.replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = decodeURIComponent(Array.from(atob(b)).map(c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
+        return decoded !== s ? decoded : null;
+      } catch(e) { return null; }
+    }
+    function _sd_isUnicode(s) {
+      // \\\\u → 注入代码中为 \\u → 正则匹配字面反斜杠+u
+      return /\\\\u[0-9a-fA-F]{4}/.test(s);
+    }
+    function _sd_decodeUnicode(s) {
+      try {
+        return s.replace(/\\\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+      } catch(e) { return null; }
+    }
+    function _sd_isUrlEncoded(s) {
+      return /%[0-9a-fA-F]{2}/.test(s);
+    }
+    function _sd_decodeUrl(s) {
+      try { return decodeURIComponent(s); } catch(e) { return null; }
+    }
+    function _sd_detect(raw) {
+      const s = raw.trim();
+      if (!s) return null;
+      const results = [];
+      if (_sd_isTimestamp(s)) {
+        const t = _sd_tsToDate(s);
+        if (t) results.push({ label: '时间戳', value: t });
+      }
+      if (_sd_isUnicode(s)) {
+        const u = _sd_decodeUnicode(s);
+        if (u && u !== s) results.push({ label: 'Unicode', value: u });
+      }
+      if (_sd_isUrlEncoded(s)) {
+        const u = _sd_decodeUrl(s);
+        if (u && u !== s) results.push({ label: 'URL解码', value: u });
+      }
+      if (_sd_isBase64(s)) {
+        const b = _sd_decodeBase64(s);
+        if (b) results.push({ label: 'Base64', value: b });
+      }
+      return results.length ? results : null;
+    }
+
+    /* ── 转化按钮 ── */
+    let _sd_btn = null, _sd_btnHideTimer = null;
+    function _sd_removeBtn() {
+      clearTimeout(_sd_btnHideTimer);
+      if (_sd_btn) { _sd_btn.remove(); _sd_btn = null; }
+    }
+    function _sd_showBtn(results, rect) {
+      _sd_removeBtn();
+      const btn = document.createElement('div');
+      const top  = rect ? Math.min(rect.bottom + 8, window.innerHeight - 40) : window.innerHeight / 2;
+      const left = rect ? Math.max(8, Math.min(rect.left + rect.width / 2 - 24, window.innerWidth - 60)) : 20;
+      btn.style.cssText = [
+        'position:fixed', 'z-index:2147483647',
+        'top:' + top + 'px', 'left:' + left + 'px',
+        'background:#89b4fa', 'color:#1e1e2e',
+        'border-radius:6px', 'padding:5px 14px',
+        'font-size:13px', 'cursor:pointer',
+        'box-shadow:0 2px 8px rgba(0,0,0,.5)',
+        'user-select:none', '-webkit-user-select:none',
+        'font-family:sans-serif', 'white-space:nowrap'
+      ].join(';');
+      btn.textContent = '转化';
+      btn._sd_results = results;
+      btn.addEventListener('pointerdown', function(e) {
+        e.stopPropagation(); e.preventDefault();
+        const r = this._sd_results;
+        _sd_removeBtn();
+        // 清除选区
+        try { window.getSelection && window.getSelection().removeAllRanges(); } catch(e2) {}
+        _sd_showPopup(r);
+      });
+      document.body.appendChild(btn);
+      _sd_btn = btn;
+    }
+
+    /* ── 结果浮层（只能通过关闭按钮关闭）── */
+    let _sd_popup = null;
+    function _sd_removePopup() {
+      if (_sd_popup) { _sd_popup.remove(); _sd_popup = null; }
+    }
+    function _sd_showPopup(items) {
+      _sd_removePopup();
+      const el = document.createElement('div');
+      el.style.cssText = [
+        'position:fixed', 'top:50%', 'left:50%',
+        'transform:translate(-50%,-50%)',
+        'z-index:2147483647',
+        'background:#1e1e2e', 'color:#cdd6f4',
+        'border-radius:12px', 'padding:16px 18px 10px',
+        'box-shadow:0 8px 32px rgba(0,0,0,.6)',
+        'width:max-content', 'min-width:260px', 'max-width:85vw',
+        'height:auto', 'max-height:77vh',
+        'display:flex', 'flex-direction:column',
+        'box-sizing:border-box',
+        'font-size:14px', 'line-height:1.6',
+        'font-family:monospace'
+      ].join(';');
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0';
+      const title = document.createElement('span');
+      title.textContent = '转化结果';
+      title.style.cssText = 'color:#89b4fa;font-size:13px;font-family:sans-serif';
+      const close = document.createElement('div');
+      close.textContent = '×';
+      close.style.cssText = 'cursor:pointer;font-size:22px;color:#a6adc8;line-height:1;padding:0 4px;font-family:sans-serif';
+      close.onclick = _sd_removePopup;
+      header.appendChild(title);
+      header.appendChild(close);
+      el.appendChild(header);
+      // 可滚动内容区，自动填满剩余高度
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1;overflow-y:auto;min-height:0';
+      items.forEach(function(item) {
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:12px';
+        const tag = document.createElement('div');
+        tag.textContent = item.label + '：';
+        tag.style.cssText = 'color:#89b4fa;font-size:12px;margin-bottom:4px;font-family:sans-serif';
+        row.appendChild(tag);
+        const val = document.createElement('div');
+        val.textContent = item.value;
+        val.title = '点击复制';
+        val.style.cssText = [
+          'background:#313244', 'border-radius:6px',
+          'padding:8px 10px', 'cursor:pointer',
+          'color:#a6e3a1', 'word-break:break-all'
+        ].join(';');
+        val.onclick = function() {
+          navigator.clipboard && navigator.clipboard.writeText(item.value).then(function() {
+            val.style.background = '#45475a';
+            setTimeout(function() { val.style.background = '#313244'; }, 600);
+          });
+        };
+        row.appendChild(val);
+        body.appendChild(row);
+      });
+      el.appendChild(body);
+      document.body.appendChild(el);
+      _sd_popup = el;
+    }
+
+    /* ── 事件监听 ── */
+    let _sd_selTimer = null;
+    document.addEventListener('selectionchange', function () {
+      clearTimeout(_sd_selTimer);
+      _sd_selTimer = setTimeout(function () {
+        if (_sd_popup) return; // 结果面板打开时不处理选区变化
+        const sel = window.getSelection();
+        const text = sel ? sel.toString() : '';
+        if (!text.trim()) {
+          // 延迟移除按钮，避免系统弹出菜单短暂清空选区
+          _sd_btnHideTimer = setTimeout(_sd_removeBtn, 600);
+          return;
+        }
+        clearTimeout(_sd_btnHideTimer);
+        const results = _sd_detect(text);
+        if (results) {
+          let rect = null;
+          try { if (sel.rangeCount > 0) rect = sel.getRangeAt(0).getBoundingClientRect(); } catch(e) {}
+          _sd_showBtn(results, rect);
+        } else {
+          _sd_removeBtn();
+        }
+      }, 300);
+    });
+  })();
+  <\/script>`;
+
   let scriptDoms = `<script ignore>
     (function() {
       window.VConsole = undefined;
@@ -3507,12 +3700,12 @@ try {
   if (/(<(?:style|link|script)[\s\S]+?<\/head>)/i.test(html)) {
     html = html.replace(
       /(<(?:style|link|script)[\s\S]+?<\/head>)/i,
-      `${copyObject}${cryptoHookScript}${encryptHookScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
+      `${copyObject}${cryptoHookScript}${encryptHookScript}${selectionDecodeScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   } else {
     html = html.replace(
       /(<\/head>|<script|<div)/i,
-      `${copyObject}${cryptoHookScript}${encryptHookScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
+      `${copyObject}${cryptoHookScript}${encryptHookScript}${selectionDecodeScript}${scriptDoms}${captchaScript}${mitmContent}$1`,
     );
   }
 
