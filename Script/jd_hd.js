@@ -428,9 +428,8 @@ try {
               if (!Object.hasOwn(this, 'init')) {
                 const hash = _id77_tmp_fin.call(this, ...arguments);
                 console.log('哈希/HMAC 加密 原始数据：', ...arguments);
-                console.log('哈希/HMAC 加密 密文：', hash.toString());
-                console.log('哈希/HMAC 加密 密文长度：', hash.toString().length);
-                console.log('注：如果是HMAC加密，本脚本是hook不到密钥的，需自行查找。');
+                // console.log('哈希/HMAC 加密 密文：', hash.toString());
+                // console.log('哈希/HMAC 加密 密文长度：', hash.toString().length);
                 console.log('%c---------------------------------------------------------------------', 'color:green;');
                 return hash;
               }
@@ -484,6 +483,51 @@ try {
         const PBC = CJS.lib.PasswordBasedCipher;
         if (SC) { SC.encrypt = _wrapEnc(SC.encrypt, 'CryptoJS '); SC.decrypt = _wrapDec(SC.decrypt, 'CryptoJS '); }
         if (PBC) { PBC.encrypt = _wrapEnc(PBC.encrypt, 'CryptoJS(PBC) '); PBC.decrypt = _wrapDec(PBC.decrypt, 'CryptoJS(PBC) '); }
+      } catch(e) {}
+      // Hook CryptoJS.algo.HMAC._init 捕获 HMAC 密钥
+      try {
+        const _hmac = CJS.algo && CJS.algo.HMAC;
+        const _hmacInitKey = _hmac && (_hmac._init ? '_init' : (_hmac.init ? 'init' : null));
+        if (_hmac && _hmacInitKey && !_hmac._id77_hmac_patched) {
+          _hmac._id77_hmac_patched = true;
+          const _origHmacInit = _hmac[_hmacInitKey];
+          _hmac[_hmacInitKey] = function(hasher, key) {
+            try {
+              // 识别具体算法名（HmacMD5 / HmacSHA1 / HmacSHA256 ...）
+              let algoName = 'HMAC';
+              try {
+                const algos = CJS.algo;
+                for (const n of Object.keys(algos)) {
+                  if (algos[n] === hasher || (typeof hasher === 'function' && algos[n] === hasher)) {
+                    algoName = 'Hmac' + n; break;
+                  }
+                }
+                // hasher 可能是实例的 constructor
+                if (algoName === 'HMAC' && hasher && hasher.algorithmName) algoName = 'Hmac' + hasher.algorithmName;
+              } catch(e) {}
+              let keyHex = null, keyUtf8 = null, keyRaw = key;
+              if (typeof key === 'string') {
+                keyUtf8 = key;
+              } else if (key && key.words) {
+                keyHex = key.toString();
+                try { keyUtf8 = key.toString(CJS.enc.Utf8); } catch(e) {}
+              }
+              // console.log(algoName + ' 密钥（原始）：', keyRaw);
+              if (keyHex) console.log(algoName + ' 密钥（Hex）：', keyHex);
+              if (keyUtf8 && keyUtf8 !== keyHex) console.log(algoName + ' 密钥（UTF-8）：', keyUtf8);
+              // 打印调用栈，定位调用 CryptoJS.HmacXXX 的函数
+              try {
+                const _stack = new Error().stack || '';
+                const _lines = _stack.split('\\n').slice(1); // 去掉 Error 行本身
+                console.log(algoName + ' 调用栈：\\n' + _lines.join('\\n'));
+              } catch(e) {}
+            } catch(e) {}
+            return Reflect.apply(_origHmacInit, this, arguments);
+          };
+          // 保留 prototype 链：部分构建使用 \`new HMAC.init()\` 模式，
+          // init.prototype = HMAC，替换后必须还原，否则 this.reset 找不到
+          _hmac[_hmacInitKey].prototype = _origHmacInit.prototype;
+        }
       } catch(e) {}
     };
     // 监视 window.CryptoJS（CDN 全局引入方式）
