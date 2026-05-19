@@ -118,6 +118,19 @@ if (notCache) {
   modifiedHeaders[' Cache-Control'] = 'private';
 }
 
+// hook CryptoJS 生成数据 的逻辑
+html = html.replace(
+  /(\.(Hmac[A-Z]+\d+)\([^,]+,([^\)]+)\)([^,;]*)([,;]))/g,
+  '$1console.log("$2 密钥：", $3)$5',
+);
+
+if (
+  /(\.(Hmac[A-Z]+\d+)\([^,]+,([^\)]+)\)([^,;\}]*)([,;]))/.test(html) &&
+  !html.includes('</head>')
+) {
+  $.done({ headers: modifiedHeaders, body: html });
+}
+
 if (!html.includes('</head>')) {
   $.done({ headers: modifiedHeaders });
 }
